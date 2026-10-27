@@ -78,8 +78,11 @@ class ImportExport extends Component
     {
         $out = [];
         foreach ($branch as $item) {
-            /** @var Node $node */
-            $node = $item['node'];
+            $node = $item['node'] ?? null;
+            // Dynamic sources inject ProjectedNode children into Twig trees — skip those for JSON export.
+            if (!$node instanceof Node) {
+                continue;
+            }
             $out[] = [
                 'title' => $node->title,
                 'type' => $node->type,
@@ -92,7 +95,7 @@ class ImportExport extends Component
                 'enabled' => (bool) $node->enabled,
                 'customAttributes' => $node->getCustomAttributesArray(),
                 'data' => $node->getDataArray() ?: null,
-                'children' => $this->exportBranch($item['children']),
+                'children' => $this->exportBranch($item['children'] ?? []),
             ];
         }
 

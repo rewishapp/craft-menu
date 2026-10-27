@@ -1,6 +1,6 @@
 {
   "name": "rewi.sh/menu",
-  "description": "Menus for Craft CMS. Nested navigation with element links, custom URLs, and Twig helpers.",
+  "description": "Menus, navigation, and navbar builder for Craft CMS — nested nav, element links, Twig, and GraphQL.",
   "type": "craft-plugin",
   "license": "MIT",
   "version": "1.0.0",
@@ -9,7 +9,14 @@
     "craftcms",
     "craft-plugin",
     "menu",
-    "navigation"
+    "menus",
+    "navigation",
+    "nav",
+    "navbar",
+    "breadcrumbs",
+    "dropdown",
+    "header-menu",
+    "footer-menu"
   ],
   "authors": [
     {
@@ -18,9 +25,9 @@
     }
   ],
   "support": {
-    "docs": "https://github.com/rewishapp/menu#readme",
-    "issues": "https://github.com/rewishapp/menu/issues",
-    "source": "https://github.com/rewishapp/menu"
+    "docs": "https://github.com/rewishapp/craft-menu#readme",
+    "issues": "https://github.com/rewishapp/craft-menu/issues",
+    "source": "https://github.com/rewishapp/craft-menu"
   },
   "require": {
     "php": ">=8.2",
@@ -45,8 +52,8 @@
     "name": "Menu",
     "developer": "rewi.sh",
     "developerUrl": "https://rewi.sh",
-    "documentationUrl": "https://github.com/rewishapp/menu/blob/main/README.md",
-    "changelogUrl": "https://raw.githubusercontent.com/rewishapp/menu/main/CHANGELOG.md",
+    "documentationUrl": "https://github.com/rewishapp/craft-menu/blob/main/README.md",
+    "changelogUrl": "https://raw.githubusercontent.com/rewishapp/craft-menu/main/CHANGELOG.md",
     "class": "rewish\\craft\\menu\\Plugin"
   },
   "config": {

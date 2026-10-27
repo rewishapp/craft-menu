@@ -21,13 +21,14 @@ ddev composer require "rewi.sh/menu:^1.0.0" -w && ddev craft plugin/install menu
 ## What you get
 
 - CP section **Menu** — create menus and drag-drop nested nodes
-- Node types: custom URL, entry, category, asset, passive, site, dynamic (section / category group / asset volume → projected children)
+- Node types: custom URL, entry, category, asset, product (Commerce), passive, site, dynamic (section / category group / asset volume / product type → projected children)
 - Per-menu sites, node field layouts, and manage permissions
 - CSS classes, URL suffix, custom attributes, new window
 - Twig: `craft.menu.tree()`, `activeTree()`, `breadcrumbs()`, `isActive` / `isCurrent`
-- GraphQL: `menu`, `menus`, `menuNodes` (with `children`, `active`, `current`), `menuBreadcrumbs`
+- GraphQL: `menu`, `menus`, `menuNodes` (with `children`, `active`, `current`, `projected`), `menuBreadcrumbs`
 - Export / import menu JSON from the node builder
-- Migrate tools in the CP and via console
+- Migrate from Verbb under **Settings** (and via console)
+- Docs in [`docs/`](docs/README.md)
 
 ## Twig
 
@@ -73,7 +74,7 @@ php craft menu/migrate/navigation --dry-run=1
 php craft menu/migrate/navigation --dry-run=0
 ```
 
-Or use **Menu → Migrate** in the control panel.
+Or use **Menu → Settings → Migrate from Verbb Navigation** in the control panel.
 
 ## License
 

@@ -108,10 +108,7 @@ class Plugin extends BasePlugin
         $subnav = [
             'menus' => ['label' => 'Menus', 'url' => 'menu'],
         ];
-        if ($user->can('menu:migrate')) {
-            $subnav['migrate'] = ['label' => 'Migrate', 'url' => 'menu/migrate'];
-        }
-        if ($user->can('menu:settings')) {
+        if ($user->can('menu:settings') || $user->can('menu:migrate')) {
             $subnav['settings'] = ['label' => 'Settings', 'url' => 'menu/settings'];
         }
         $item['subnav'] = $subnav;

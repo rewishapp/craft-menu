@@ -2,19 +2,81 @@
 {% import "_includes/forms" as forms %}
 {% set title = "Settings"|t('app') %}
 {% set selectedSubnavItem = "settings" %}
-{% set fullPageForm = true %}
 
 {% block content %}
-  {{ actionInput('menu/settings/save') }}
+  <div class="menu-settings">
+    {% if canSettings %}
+      <div class="menu-settings__card">
+        <div class="menu-settings__card-head">
+          <h2>{{ "General"|t('menu') }}</h2>
+          <p>{{ "Defaults applied when you create a new menu."|t('menu') }}</p>
+        </div>
+        <div class="menu-settings__card-body">
+          <form method="post">
+            {{ csrfInput() }}
+            {{ actionInput('menu/settings/save') }}
+            {{ forms.textField({
+              label: "Default max levels"|t('menu'),
+              instructions: "How deep new menus can nest by default. Each menu can override this."|t('menu'),
+              name: 'defaultMaxLevels',
+              value: settings.defaultMaxLevels,
+              type: 'number',
+              min: 1,
+              max: 20,
+              first: true,
+            }) }}
+            <div class="menu-settings__actions">
+              <button class="btn submit" type="submit">{{ "Save"|t('app') }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    {% endif %}
 
-  {{ forms.textField({
-    label: "Default max levels"|t('menu'),
-    instructions: "Used when creating a new menu."|t('menu'),
-    name: 'defaultMaxLevels',
-    value: settings.defaultMaxLevels,
-    type: 'number',
-    min: 1,
-    max: 20,
-    first: true,
-  }) }}
+    {% if canMigrate %}
+      <div class="menu-settings__card" id="migrate">
+        <div class="menu-settings__card-head">
+          <h2>{{ "Migrate from Verbb Navigation"|t('menu') }}</h2>
+          <p>{{ "Import existing Navigation menus into Menu. Handles that already exist are skipped."|t('menu') }}</p>
+        </div>
+        <div class="menu-settings__card-body">
+          {% if verbb.available %}
+            <div class="menu-settings__stats">
+              <div class="menu-settings__stat">
+                <span class="menu-settings__stat-value">{{ verbb.plugin ? "Yes"|t('app') : "No"|t('app') }}</span>
+                <span class="menu-settings__stat-label">{{ "Plugin"|t('app') }}</span>
+              </div>
+              <div class="menu-settings__stat">
+                <span class="menu-settings__stat-value">{{ verbb.menus }}</span>
+                <span class="menu-settings__stat-label">{{ "Menus"|t('menu') }}</span>
+              </div>
+              <div class="menu-settings__stat">
+                <span class="menu-settings__stat-value">{{ verbb.nodes }}</span>
+                <span class="menu-settings__stat-label">{{ "Nodes"|t('menu') }}</span>
+              </div>
+            </div>
+            <p class="light" style="margin: 0 0 12px;">
+              {{ "Unsupported node types (for example Product or Dynamic) are skipped during import."|t('menu') }}
+            </p>
+            <div class="menu-settings__actions">
+              <form method="post">
+                {{ csrfInput() }}
+                {{ actionInput('menu/migrate/verbb') }}
+                {{ hiddenInput('dryRun', '1') }}
+                <button class="btn" type="submit">{{ "Dry-run migrate"|t('menu') }}</button>
+              </form>
+              <form method="post" onsubmit="return confirm('{{ "Import menus and nodes into Menu now?"|t('menu') }}')">
+                {{ csrfInput() }}
+                {{ actionInput('menu/migrate/verbb') }}
+                {{ hiddenInput('dryRun', '0') }}
+                <button class="btn submit" type="submit">{{ "Run migrate"|t('menu') }}</button>
+              </form>
+            </div>
+          {% else %}
+            <p class="menu-settings__empty">{{ verbb.message ?: "Migrate from Verbb: nothing found on this install."|t('menu') }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
 {% endblock %}

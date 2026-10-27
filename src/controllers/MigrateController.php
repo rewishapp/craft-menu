@@ -11,11 +11,8 @@ class MigrateController extends Controller
     public function actionIndex(): Response
     {
         $this->requirePermission('menu:migrate');
-        $migrators = Plugin::getInstance()->migrators;
 
-        return $this->renderTemplate('menu/migrate/index', [
-            'verbb' => $migrators->detectVerbbNavigation(),
-        ]);
+        return $this->redirect('menu/settings#migrate');
     }
 
     public function actionVerbb(): ?Response

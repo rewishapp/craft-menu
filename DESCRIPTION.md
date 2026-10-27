@@ -1,15 +1,23 @@
 # Menu
 
-Nested navigation for Craft CMS — menus that are not forced to mirror your section tree.
+Nested **menus**, **navigation**, and **navbar** builder for Craft CMS — site nav that is not forced to mirror your section tree.
 
-**Menu** lets authors build headers, footers, and utility navs with custom URLs or links to entries, categories, and assets. Twig helpers expose a tree for the front end.
+**Menu** (package `rewi.sh/menu`) lets authors build **main navigation**, **header nav**, **footer menus**, **utility nav**, **sidebar menus**, and multi-level **dropdown** / **mega-menu** style trees. Link to custom URLs or Craft elements (entries, categories, assets, sites, and Commerce products when installed). Use **passive** labels, **dynamic** sources (projected children), and per-menu sites. Twig and GraphQL expose the tree for the front end — including **active** / **current** states and **breadcrumbs**.
+
+Searchable as: menu, menus, navigation, nav, navbar, site nav, main menu, header menu, footer menu, utility navigation, sidebar nav, submenu, nested menu, dropdown menu, mega menu, breadcrumbs, menu builder, navigation builder, Craft CMS menu plugin, Craft navigation plugin. Compatible mindset with migrating from Verbb Navigation.
 
 ## Control panel
 
-- **Menus** — create and configure each menu (handle, max levels)
-- **Nodes** — labels, types, URLs / element IDs, new window, CSS classes
-- **Migrate** — Migrate from Verbb
-- **Settings** — defaults such as max levels
+- **Menus** — create and configure each menu / navbar handle, max levels, sites, field layout
+- **Nodes** — drag-and-drop structure; custom URL, entry, category, asset, product, passive, site, dynamic
+- **Settings** — defaults such as max levels; migrate from Verbb Navigation
+- **Developer helpers** — copy Twig (`tree`, `activeTree`, `breadcrumbs`) and GraphQL queries from the builder
+
+## Front end
+
+- Twig: `craft.menu.tree()`, `activeTree()`, `breadcrumbs()`, `isActive` / `isCurrent`
+- GraphQL: `menu`, `menus`, `menuNodes`, `menuBreadcrumbs` (with `children`, `active`, `current`, `projected`)
+- Import / export menu JSON; console + CP migrate from Verbb
 
 ## Requirements
 

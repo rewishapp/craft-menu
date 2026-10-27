@@ -1,8 +1,15 @@
 {% if canEdit and nodes|length %}
-  <p class="menu-builder__hint">{{ "Drag the handle to reorder. Drop on the top/bottom edge to place before/after, or in the middle to nest."|t('menu') }}</p>
+  <p class="menu-builder__hint">
+    <svg class="menu-builder__hint-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM7.25 5a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V5Zm.75 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>
+    <span>{{ "Drag the handle to reorder. Drop on the top or bottom edge to place before/after, or in the middle to nest."|t('menu') }}</span>
+  </p>
 {% endif %}
+
 {% if nodes is empty %}
-  <p>{{ "No nodes yet. Add one with the form."|t('menu') }}</p>
+  <div class="menu-builder__empty">
+    <p class="menu-builder__empty-title">{{ "No nodes yet"|t('menu') }}</p>
+    <p class="menu-builder__empty-copy">{{ "Add your first link with the form on the right."|t('menu') }}</p>
+  </div>
 {% else %}
   <ul
     class="menu-builder"
@@ -12,20 +19,41 @@
     data-move-url="{{ actionUrl('menu/nodes/move') }}"
     data-list-url="{{ url('menu/' ~ menu.id ~ '/nodes/list', { siteId: siteId }) }}"
   >
+    {% set badgeLabels = {
+      custom: 'Custom'|t('menu'),
+      entry: 'Entry'|t('menu'),
+      category: 'Category'|t('menu'),
+      asset: 'Asset'|t('menu'),
+      product: 'Product'|t('menu'),
+      passive: 'Passive'|t('menu'),
+      site: 'Site'|t('menu'),
+      dynamic: 'Dynamic'|t('menu'),
+    } %}
     {% for node in nodes %}
+      {% set isSelected = editNode.id is defined and editNode.id and editNode.id == node.id %}
       <li
-        class="menu-builder__row"
+        class="menu-builder__row{% if isSelected %} is-selected{% endif %}{% if not node.enabled %} is-disabled-node{% endif %}"
         data-node-id="{{ node.id }}"
-        style="margin-left: {{ node.levelIndent * 18 }}px;"
+        data-level="{{ node.level }}"
+        style="--indent: {{ node.levelIndent }};"
       >
         {% if canEdit %}
-          <span class="menu-builder__handle" data-drag-handle title="{{ "Drag to reorder"|t('menu') }}" tabindex="0">⠿</span>
+          <span class="menu-builder__handle" data-drag-handle title="{{ "Drag to reorder"|t('menu') }}" tabindex="0" aria-label="{{ "Drag to reorder"|t('menu') }}">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5 3.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm6.5-9a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/></svg>
+          </span>
+        {% else %}
+          <span></span>
         {% endif %}
-        <div class="menu-builder__title">
-          <a href="{{ url('menu/' ~ menu.id ~ '/nodes', { nodeId: node.id, siteId: siteId }) }}">{{ node.title }}</a>
+
+        <div class="menu-builder__main">
+          <div class="menu-builder__title">
+            <a href="{{ url('menu/' ~ menu.id ~ '/nodes', { nodeId: node.id, siteId: siteId }) }}">{{ node.title }}</a>
+          </div>
+          <div class="menu-builder__url" title="{{ node.nodeUrl ?? '' }}">{{ node.nodeUrl ?? '—' }}</div>
         </div>
-        <span class="menu-builder__meta">{{ types[node.type] ?? node.type }}</span>
-        <span class="menu-builder__meta"><code>{{ node.nodeUrl ?? '—' }}</code></span>
+
+        <span class="menu-builder__badge" data-type="{{ node.type }}" title="{{ types[node.type] ?? node.type }}">{{ badgeLabels[node.type] ?? (types[node.type] ?? node.type) }}</span>
+
         {% if canEdit %}
           <div class="menu-builder__actions">
             <form method="post">
@@ -34,7 +62,15 @@
               {{ hiddenInput('menuId', menu.id) }}
               {{ hiddenInput('siteId', siteId) }}
               {{ hiddenInput('nodeId', node.id) }}
-              <button class="btn small" type="submit" onclick="return confirm('{{ "Delete this node?"|t('menu') }}')">{{ "Delete"|t('app') }}</button>
+              <button
+                class="menu-builder__icon-btn"
+                type="submit"
+                title="{{ "Delete"|t('app') }}"
+                aria-label="{{ "Delete"|t('app') }}"
+                onclick="return confirm('{{ "Delete this node?"|t('menu') }}')"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6.5 2h3a.5.5 0 0 1 .5.5V3h3a.5.5 0 0 1 0 1h-.6l-.7 8.1A1.5 1.5 0 0 1 10.2 13.5H5.8A1.5 1.5 0 0 1 4.3 12.1L3.6 4H3a.5.5 0 0 1 0-1h3v-.5a.5.5 0 0 1 .5-.5Zm1 0v1h1V2h-1ZM5.3 4l.7 7.9a.5.5 0 0 0 .5.45h4.4a.5.5 0 0 0 .5-.45L11.7 4H5.3Z"/></svg>
+              </button>
             </form>
           </div>
         {% endif %}

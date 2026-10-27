@@ -1,0 +1,72 @@
+{% set handle = menu.handle %}
+{% set treeCode = "craft.menu.tree('" ~ handle ~ "')" %}
+{% set activeCode = "craft.menu.activeTree('" ~ handle ~ "')" %}
+{% set crumbsCode = "craft.menu.breadcrumbs('" ~ handle ~ "')" %}
+{% set exampleCode = "{% set tree = craft.menu.activeTree('" ~ handle ~ "') %}\n<ul>\n  {% for item in tree %}\n    <li class=\"{{ item.active ? 'is-active' }}{{ item.current ? ' is-current' }}\">\n      {% if item.node.nodeUrl %}\n        <a href=\"{{ item.node.nodeUrl }}\">{{ item.node.title }}</a>\n      {% else %}\n        <span>{{ item.node.title }}</span>\n      {% endif %}\n    </li>\n  {% endfor %}\n</ul>" %}
+{% set gqlCode = "{\n  menu(handle: \"" ~ handle ~ "\") { id title handle }\n  menuNodes(handle: \"" ~ handle ~ "\", level: 1) {\n    id title url\n    active(uri: \"about\") current(uri: \"about\")\n    children { id title url }\n  }\n  menuBreadcrumbs(handle: \"" ~ handle ~ "\", uri: \"about\") {\n    id title url\n  }\n}" %}
+
+<details class="menu-snippets" data-menu-snippets>
+  <summary class="menu-snippets__summary">
+    <span class="menu-snippets__summary-text">
+      <strong>{{ "Developer helpers"|t('menu') }}</strong>
+      <span>{{ "Twig & GraphQL"|t('menu') }}</span>
+    </span>
+    <span class="menu-snippets__chevron" aria-hidden="true"></span>
+  </summary>
+
+  <div class="menu-snippets__body">
+    <div class="menu-snippets__tabs" role="tablist" aria-label="{{ "Developer helpers"|t('menu') }}">
+      <button type="button" class="menu-snippets__tab is-active" role="tab" aria-selected="true" data-snippet-tab="twig">Twig</button>
+      <button type="button" class="menu-snippets__tab" role="tab" aria-selected="false" data-snippet-tab="graphql">GraphQL</button>
+    </div>
+
+    <div class="menu-snippets__panel" data-snippet-panel="twig">
+      <p class="menu-snippets__lead">{{ "Copy a helper and drop it into Twig."|t('menu') }}</p>
+      <div class="menu-snippets__rows">
+        <div class="menu-snippets__row">
+          <div class="menu-snippets__meta">
+            <span class="menu-snippets__label">{{ "Full tree"|t('menu') }}</span>
+            <span class="menu-snippets__hint">{{ "All nodes, nested"|t('menu') }}</span>
+          </div>
+          <code class="menu-snippets__code">{{ treeCode }}</code>
+          <button type="button" class="menu-snippets__copy" data-copy="{{ treeCode|e('html_attr') }}">{{ "Copy"|t('app') }}</button>
+        </div>
+        <div class="menu-snippets__row">
+          <div class="menu-snippets__meta">
+            <span class="menu-snippets__label">{{ "Active tree"|t('menu') }}</span>
+            <span class="menu-snippets__hint">{{ "Marks the current page"|t('menu') }}</span>
+          </div>
+          <code class="menu-snippets__code">{{ activeCode }}</code>
+          <button type="button" class="menu-snippets__copy" data-copy="{{ activeCode|e('html_attr') }}">{{ "Copy"|t('app') }}</button>
+        </div>
+        <div class="menu-snippets__row">
+          <div class="menu-snippets__meta">
+            <span class="menu-snippets__label">{{ "Breadcrumbs"|t('menu') }}</span>
+            <span class="menu-snippets__hint">{{ "Path to the active node"|t('menu') }}</span>
+          </div>
+          <code class="menu-snippets__code">{{ crumbsCode }}</code>
+          <button type="button" class="menu-snippets__copy" data-copy="{{ crumbsCode|e('html_attr') }}">{{ "Copy"|t('app') }}</button>
+        </div>
+      </div>
+
+      <details class="menu-snippets__example">
+        <summary>{{ "Example loop"|t('menu') }}</summary>
+        <div class="menu-snippets__example-body">
+          <pre class="menu-snippets__pre">{{ exampleCode }}</pre>
+          <button type="button" class="btn small menu-snippets__copy" data-copy="{{ exampleCode|e('html_attr') }}">{{ "Copy example"|t('menu') }}</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="menu-snippets__panel" data-snippet-panel="graphql" hidden>
+      <p class="menu-snippets__lead">{{ "Query menus from headless or GraphiQL."|t('menu') }}</p>
+      <div class="menu-snippets__example-body">
+        <pre class="menu-snippets__pre">{{ gqlCode }}</pre>
+        <button type="button" class="btn small menu-snippets__copy" data-copy="{{ gqlCode|e('html_attr') }}">{{ "Copy query"|t('menu') }}</button>
+      </div>
+      <p class="menu-snippets__foot">
+        {{ "Schema fields: menu, menus, menuNodes, menuBreadcrumbs. Nodes expose children, active, current, and projected."|t('menu') }}
+      </p>
+    </div>
+  </div>
+</details>

@@ -18,9 +18,22 @@ class MenusController extends Controller
     {
         $this->requirePermission('menu:access');
         $user = \Craft::$app->getUser()->getIdentity();
+        $menus = Plugin::getInstance()->menus->getAll($user);
+        $nodeCounts = [];
+        foreach ($menus as $menu) {
+            if (!$menu->id) {
+                continue;
+            }
+            $nodeCounts[(int) $menu->id] = (int) Node::find()
+                ->menuId((int) $menu->id)
+                ->status(null)
+                ->count()
+            ;
+        }
 
         return $this->renderTemplate('menu/menus/index', [
-            'menus' => Plugin::getInstance()->menus->getAll($user),
+            'menus' => $menus,
+            'nodeCounts' => $nodeCounts,
             'canCreate' => $user?->can('menu:editMenus') ?? false,
         ]);
     }

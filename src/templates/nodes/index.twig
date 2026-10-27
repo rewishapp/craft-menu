@@ -12,24 +12,25 @@
 {% endset %}
 
 {% block content %}
-  {% if sites|length > 1 %}
-    <div class="pane" style="margin-bottom: 14px;">
-      <div class="flex" style="align-items: center; gap: 12px; flex-wrap: wrap;">
-        <strong>{{ "Editing site"|t('menu') }}</strong>
+  <div class="menu-cp">
+    {% if sites|length > 1 %}
+      <div class="menu-cp__sites" style="grid-column: 1 / -1;">
+        <span class="menu-cp__sites-label">{{ "Editing site"|t('menu') }}</span>
         {% for site in sites %}
-          <a class="btn{% if site.id == siteId %} primary{% endif %}" href="{{ url('menu/' ~ menu.id ~ '/nodes', { siteId: site.id, nodeId: editNode.id ?: null }) }}">{{ site.name }}</a>
+          <a class="btn small{% if site.id == siteId %} primary{% endif %}" href="{{ url('menu/' ~ menu.id ~ '/nodes', { siteId: site.id, nodeId: editNode.id ?: null }) }}">{{ site.name }}</a>
         {% endfor %}
       </div>
-    </div>
-  {% endif %}
+    {% endif %}
 
-  <div class="flex" style="gap: 24px; align-items: flex-start; flex-wrap: wrap;">
-    <div class="pane" style="flex: 1.2; min-width: 280px;">
-      <div class="flex" style="justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <h2 style="margin: 0;">{{ "Nodes"|t('menu') }}</h2>
+    <div class="menu-cp__pane">
+      <div class="menu-cp__pane-head">
+        <h2>{{ "Nodes"|t('menu') }}</h2>
         {% if canEdit %}
-          <div class="flex" style="gap: 8px; align-items: center;" data-build-session>
-            <span class="light">{{ "Build session"|t('menu') }} · {{ "Moves this session:"|t('menu') }} <strong data-session-moves>{{ session.moves }}</strong></span>
+          <div class="menu-cp__session" data-build-session>
+            <span class="menu-cp__session-meta">
+              {{ "Session moves"|t('menu') }}:
+              <strong data-session-moves>{{ session.moves }}</strong>
+            </span>
             <button
               type="button"
               class="btn small"
@@ -39,298 +40,295 @@
               data-site-id="{{ siteId }}"
               data-confirm="{{ "Discard all structure moves in this session and restore the snapshot?"|t('menu') }}"
               {% if session.moves < 1 %}disabled{% endif %}
-            >{{ "Discard structure changes"|t('menu') }}</button>
+            >{{ "Discard"|t('menu') }}</button>
           </div>
         {% endif %}
       </div>
-      <div data-menu-builder-host style="margin-top: 10px;">
-        {% include "menu/nodes/_list" %}
+      <div class="menu-cp__pane-body">
+        <div data-menu-builder-host>
+          {% include "menu/nodes/_list" %}
+        </div>
       </div>
-      <p class="light" style="margin-top: 12px;">
-        Twig: <code>craft.menu.tree('{{ menu.handle }}')</code>
-        · <code>craft.menu.activeTree('{{ menu.handle }}')</code>
-        · <code>craft.menu.breadcrumbs('{{ menu.handle }}')</code>
-      </p>
+      <div class="menu-cp__snippets">
+        {% include "menu/nodes/_snippets" %}
+      </div>
     </div>
 
     {% if canEdit %}
-      <div class="pane" style="flex: 0.9; min-width: 300px;">
-        <h2>{{ editNode.id ? "Edit node"|t('menu') : "New node"|t('menu') }}</h2>
-        <form method="post">
-          {{ csrfInput() }}
-          {{ actionInput('menu/nodes/save') }}
-          {{ hiddenInput('menuId', menu.id) }}
-          {{ hiddenInput('siteId', siteId) }}
-          {% if editNode.id %}{{ hiddenInput('nodeId', editNode.id) }}{% endif %}
+      <div class="menu-cp__pane">
+        <div class="menu-cp__pane-head">
+          <h2>{{ editNode.id ? "Edit node"|t('menu') : "New node"|t('menu') }}</h2>
+        </div>
+        <div class="menu-cp__pane-body">
+          <form method="post" class="menu-editor">
+            {{ csrfInput() }}
+            {{ actionInput('menu/nodes/save') }}
+            {{ hiddenInput('menuId', menu.id) }}
+            {{ hiddenInput('siteId', siteId) }}
+            {% if editNode.id %}{{ hiddenInput('nodeId', editNode.id) }}{% endif %}
 
-          {{ forms.textField({
-            label: "Label"|t('app'),
-            name: 'title',
-            value: editNode.title,
-            required: true,
-            first: true,
-          }) }}
+            <div class="menu-editor__section">
+              <p class="menu-editor__section-title">{{ "Basics"|t('menu') }}</p>
 
-          {{ forms.selectField({
-            label: "Parent"|t('menu'),
-            name: 'parentId',
-            value: parentId,
-            options: parentOptions,
-          }) }}
-
-          {{ forms.selectField({
-            label: "Type"|t('app'),
-            id: 'node-type',
-            name: 'type',
-            value: editNode.type,
-            options: types,
-          }) }}
-
-          <div data-node-type-panel="custom" {% if editNode.type != 'custom' %}hidden{% endif %}>
-            {{ forms.textField({
-              label: "URL"|t('app'),
-              name: 'url',
-              value: editNode.url,
-            }) }}
-          </div>
-
-          <div data-node-type-panel="entry" {% if editNode.type != 'entry' %}hidden{% endif %}>
-            {{ forms.elementSelectField({
-              label: "Entry"|t('app'),
-              id: 'elements-entry',
-              name: 'elements',
-              elementType: 'craft\\elements\\Entry',
-              limit: 1,
-              elements: (editNode.type == 'entry' and linkedElement ? [linkedElement] : []),
-            }) }}
-          </div>
-
-          <div data-node-type-panel="category" {% if editNode.type != 'category' %}hidden{% endif %}>
-            {{ forms.elementSelectField({
-              label: "Category"|t('app'),
-              id: 'elements-category',
-              name: 'elements',
-              elementType: 'craft\\elements\\Category',
-              limit: 1,
-              elements: (editNode.type == 'category' and linkedElement ? [linkedElement] : []),
-            }) }}
-          </div>
-
-          <div data-node-type-panel="asset" {% if editNode.type != 'asset' %}hidden{% endif %}>
-            {{ forms.elementSelectField({
-              label: "Asset"|t('app'),
-              id: 'elements-asset',
-              name: 'elements',
-              elementType: 'craft\\elements\\Asset',
-              limit: 1,
-              elements: (editNode.type == 'asset' and linkedElement ? [linkedElement] : []),
-            }) }}
-          </div>
-
-          {% if commerceInstalled and productClass %}
-            <div data-node-type-panel="product" {% if editNode.type != 'product' %}hidden{% endif %}>
-              {{ forms.elementSelectField({
-                label: "Product"|t('menu'),
-                id: 'elements-product',
-                name: 'elements',
-                elementType: productClass,
-                limit: 1,
-                elements: (editNode.type == 'product' and linkedElement ? [linkedElement] : []),
+              {{ forms.textField({
+                label: "Label"|t('app'),
+                name: 'title',
+                value: editNode.title,
+                required: true,
+                first: true,
               }) }}
-            </div>
-          {% endif %}
 
-          <div data-node-type-panel="site" {% if editNode.type != 'site' %}hidden{% endif %}>
-            {% set siteOptions = [{ label: "Choose a site"|t('menu'), value: '' }] %}
-            {% for site in sites %}
-              {% set siteOptions = siteOptions|merge([{ label: site.name, value: site.id }]) %}
-            {% endfor %}
-            {{ forms.selectField({
-              label: "Site"|t('app'),
-              name: 'linkedSiteId',
-              value: editNode.type == 'site' ? editNode.elementId : '',
-              options: siteOptions,
-            }) }}
-          </div>
-
-          <div data-node-type-panel="passive" {% if editNode.type != 'passive' %}hidden{% endif %}>
-            <p class="light">{{ "Passive nodes are labels only — no URL."|t('menu') }}</p>
-          </div>
-
-          <div data-node-type-panel="dynamic" {% if editNode.type != 'dynamic' %}hidden{% endif %}>
-            {{ forms.selectField({
-              label: "Dynamic source"|t('menu'),
-              id: 'dynamic-source',
-              name: 'dynamicSource',
-              value: dynamicData.source ?? 'entrySection',
-              options: dynamicSources,
-            }) }}
-            <div data-dynamic-panel="entrySection">
-              {% set sectionOptions = [{ label: "Choose a section"|t('menu'), value: '' }] %}
-              {% for section in sections %}
-                {% set sectionOptions = sectionOptions|merge([{ label: section.name, value: section.handle }]) %}
-              {% endfor %}
               {{ forms.selectField({
-                label: "Section"|t('app'),
-                name: 'dynamicSection',
-                value: dynamicData.section ?? '',
-                options: sectionOptions,
+                label: "Parent"|t('menu'),
+                name: 'parentId',
+                value: parentId,
+                options: parentOptions,
               }) }}
-            </div>
-            <div data-dynamic-panel="categoryGroup" hidden>
-              {% set groupOptions = [{ label: "Choose a group"|t('menu'), value: '' }] %}
-              {% for group in categoryGroups %}
-                {% set groupOptions = groupOptions|merge([{ label: group.name, value: group.handle }]) %}
-              {% endfor %}
-              {{ forms.selectField({
-                label: "Category group"|t('app'),
-                name: 'dynamicGroup',
-                value: dynamicData.group ?? '',
-                options: groupOptions,
-              }) }}
-            </div>
-            <div data-dynamic-panel="assetVolume" hidden>
-              {% set volumeOptions = [{ label: "Choose a volume"|t('menu'), value: '' }] %}
-              {% for volume in volumes %}
-                {% set volumeOptions = volumeOptions|merge([{ label: volume.name, value: volume.handle }]) %}
-              {% endfor %}
-              {{ forms.selectField({
-                label: "Volume"|t('app'),
-                name: 'dynamicVolume',
-                value: dynamicData.volume ?? '',
-                options: volumeOptions,
-              }) }}
-            </div>
-            {% if commerceInstalled %}
-              <div data-dynamic-panel="productType" hidden>
-                {% set ptOptions = [{ label: "Choose a product type"|t('menu'), value: '' }] %}
-                {% for pt in productTypes %}
-                  {% set ptOptions = ptOptions|merge([{ label: pt.name, value: pt.handle }]) %}
+
+              <p class="menu-editor__section-title" style="margin-top: 14px;">{{ "Type"|t('app') }}</p>
+              <div class="menu-editor__types" role="group" aria-label="{{ "Type"|t('app') }}">
+                {% for value, label in types %}
+                  <button
+                    type="button"
+                    class="menu-editor__type{% if editNode.type == value %} is-active{% endif %}"
+                    data-node-type-chip="{{ value }}"
+                  >{{ label }}</button>
                 {% endfor %}
-                {{ forms.selectField({
-                  label: "Product type"|t('menu'),
-                  name: 'dynamicProductType',
-                  value: dynamicData.productType ?? '',
-                  options: ptOptions,
+              </div>
+              <select id="node-type" name="type" class="menu-editor__type-native" aria-hidden="true" tabindex="-1">
+                {% for value, label in types %}
+                  <option value="{{ value }}"{% if editNode.type == value %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="menu-editor__section">
+              <p class="menu-editor__section-title">{{ "Link target"|t('menu') }}</p>
+
+              <div class="menu-editor__panel" data-node-type-panel="custom" {% if editNode.type != 'custom' %}hidden{% endif %}>
+                {{ forms.textField({
+                  label: "URL"|t('app'),
+                  name: 'url',
+                  value: editNode.url,
+                  placeholder: '/about or https://…',
                 }) }}
               </div>
+
+              <div class="menu-editor__panel" data-node-type-panel="entry" {% if editNode.type != 'entry' %}hidden{% endif %}>
+                {{ forms.elementSelectField({
+                  label: "Entry"|t('app'),
+                  id: 'elements-entry',
+                  name: 'elements',
+                  elementType: 'craft\\elements\\Entry',
+                  limit: 1,
+                  elements: (editNode.type == 'entry' and linkedElement ? [linkedElement] : []),
+                }) }}
+              </div>
+
+              <div class="menu-editor__panel" data-node-type-panel="category" {% if editNode.type != 'category' %}hidden{% endif %}>
+                {{ forms.elementSelectField({
+                  label: "Category"|t('app'),
+                  id: 'elements-category',
+                  name: 'elements',
+                  elementType: 'craft\\elements\\Category',
+                  limit: 1,
+                  elements: (editNode.type == 'category' and linkedElement ? [linkedElement] : []),
+                }) }}
+              </div>
+
+              <div class="menu-editor__panel" data-node-type-panel="asset" {% if editNode.type != 'asset' %}hidden{% endif %}>
+                {{ forms.elementSelectField({
+                  label: "Asset"|t('app'),
+                  id: 'elements-asset',
+                  name: 'elements',
+                  elementType: 'craft\\elements\\Asset',
+                  limit: 1,
+                  elements: (editNode.type == 'asset' and linkedElement ? [linkedElement] : []),
+                }) }}
+              </div>
+
+              {% if commerceInstalled and productClass %}
+                <div class="menu-editor__panel" data-node-type-panel="product" {% if editNode.type != 'product' %}hidden{% endif %}>
+                  {{ forms.elementSelectField({
+                    label: "Product"|t('menu'),
+                    id: 'elements-product',
+                    name: 'elements',
+                    elementType: productClass,
+                    limit: 1,
+                    elements: (editNode.type == 'product' and linkedElement ? [linkedElement] : []),
+                  }) }}
+                </div>
+              {% endif %}
+
+              <div class="menu-editor__panel" data-node-type-panel="site" {% if editNode.type != 'site' %}hidden{% endif %}>
+                {% set siteOptions = [{ label: "Choose a site"|t('menu'), value: '' }] %}
+                {% for site in sites %}
+                  {% set siteOptions = siteOptions|merge([{ label: site.name, value: site.id }]) %}
+                {% endfor %}
+                {{ forms.selectField({
+                  label: "Site"|t('app'),
+                  name: 'linkedSiteId',
+                  value: editNode.type == 'site' ? editNode.elementId : '',
+                  options: siteOptions,
+                }) }}
+              </div>
+
+              <div class="menu-editor__panel" data-node-type-panel="passive" {% if editNode.type != 'passive' %}hidden{% endif %}>
+                <p class="menu-editor__note">{{ "Passive nodes are labels only — no URL."|t('menu') }}</p>
+              </div>
+
+              <div class="menu-editor__panel" data-node-type-panel="dynamic" {% if editNode.type != 'dynamic' %}hidden{% endif %}>
+                {{ forms.selectField({
+                  label: "Dynamic source"|t('menu'),
+                  id: 'dynamic-source',
+                  name: 'dynamicSource',
+                  value: dynamicData.source ?? 'entrySection',
+                  options: dynamicSources,
+                }) }}
+                <div data-dynamic-panel="entrySection">
+                  {% set sectionOptions = [{ label: "Choose a section"|t('menu'), value: '' }] %}
+                  {% for section in sections %}
+                    {% set sectionOptions = sectionOptions|merge([{ label: section.name, value: section.handle }]) %}
+                  {% endfor %}
+                  {{ forms.selectField({
+                    label: "Section"|t('app'),
+                    name: 'dynamicSection',
+                    value: dynamicData.section ?? '',
+                    options: sectionOptions,
+                  }) }}
+                </div>
+                <div data-dynamic-panel="categoryGroup" hidden>
+                  {% set groupOptions = [{ label: "Choose a group"|t('menu'), value: '' }] %}
+                  {% for group in categoryGroups %}
+                    {% set groupOptions = groupOptions|merge([{ label: group.name, value: group.handle }]) %}
+                  {% endfor %}
+                  {{ forms.selectField({
+                    label: "Category group"|t('app'),
+                    name: 'dynamicGroup',
+                    value: dynamicData.group ?? '',
+                    options: groupOptions,
+                  }) }}
+                </div>
+                <div data-dynamic-panel="assetVolume" hidden>
+                  {% set volumeOptions = [{ label: "Choose a volume"|t('menu'), value: '' }] %}
+                  {% for volume in volumes %}
+                    {% set volumeOptions = volumeOptions|merge([{ label: volume.name, value: volume.handle }]) %}
+                  {% endfor %}
+                  {{ forms.selectField({
+                    label: "Volume"|t('app'),
+                    name: 'dynamicVolume',
+                    value: dynamicData.volume ?? '',
+                    options: volumeOptions,
+                  }) }}
+                </div>
+                {% if commerceInstalled %}
+                  <div data-dynamic-panel="productType" hidden>
+                    {% set ptOptions = [{ label: "Choose a product type"|t('menu'), value: '' }] %}
+                    {% for pt in productTypes %}
+                      {% set ptOptions = ptOptions|merge([{ label: pt.name, value: pt.handle }]) %}
+                    {% endfor %}
+                    {{ forms.selectField({
+                      label: "Product type"|t('menu'),
+                      name: 'dynamicProductType',
+                      value: dynamicData.productType ?? '',
+                      options: ptOptions,
+                    }) }}
+                  </div>
+                {% endif %}
+                {{ forms.textField({
+                  label: "Limit"|t('app'),
+                  name: 'dynamicLimit',
+                  value: dynamicData.limit ?? 50,
+                  type: 'number',
+                  min: 1,
+                  max: 500,
+                }) }}
+                <p class="menu-editor__note">{{ "Projected children appear in Twig/GraphQL trees, not as editable nodes."|t('menu') }}</p>
+              </div>
+            </div>
+
+            <div class="menu-editor__section">
+              <p class="menu-editor__section-title">{{ "Options"|t('menu') }}</p>
+              {{ forms.lightswitchField({
+                label: "Enabled"|t('app'),
+                name: 'enabled',
+                on: editNode.enabled ?? true,
+              }) }}
+              {{ forms.lightswitchField({
+                label: "Open in new window"|t('menu'),
+                name: 'newWindow',
+                on: editNode.newWindow,
+              }) }}
+              {{ forms.lightswitchField({
+                label: "Follow linked element title"|t('menu'),
+                name: 'followElement',
+                on: editNode.followElement,
+              }) }}
+            </div>
+
+            <div class="menu-editor__section">
+              <details class="menu-editor__advanced">
+                <summary>{{ "Advanced"|t('menu') }}</summary>
+                {{ forms.textField({
+                  label: "CSS classes"|t('menu'),
+                  name: 'classes',
+                  value: editNode.classes,
+                }) }}
+                {{ forms.textField({
+                  label: "URL suffix"|t('menu'),
+                  name: 'urlSuffix',
+                  value: editNode.urlSuffix,
+                }) }}
+                {{ forms.textareaField({
+                  label: "Custom attributes (JSON)"|t('menu'),
+                  instructions: 'Optional object, e.g. {"data-nav":"primary"}'|t('menu'),
+                  name: 'customAttributes',
+                  value: editNode.customAttributesArray ? editNode.customAttributesArray|json_encode : '',
+                  rows: 3,
+                }) }}
+              </details>
+            </div>
+
+            {% if nodeFieldLayout %}
+              <div class="menu-editor__section">
+                <p class="menu-editor__section-title">{{ "Custom fields"|t('menu') }}</p>
+                {{ nodeFieldLayout.createForm(editNode).render()|raw }}
+              </div>
             {% endif %}
-            {{ forms.textField({
-              label: "Limit"|t('app'),
-              name: 'dynamicLimit',
-              value: dynamicData.limit ?? 50,
-              type: 'number',
-              min: 1,
-              max: 500,
-            }) }}
-            <p class="light">{{ "Projected children appear in Twig/GraphQL trees, not as editable nodes."|t('menu') }}</p>
-          </div>
 
-          {{ forms.textField({
-            label: "CSS classes"|t('menu'),
-            name: 'classes',
-            value: editNode.classes,
-          }) }}
-
-          {{ forms.textField({
-            label: "URL suffix"|t('menu'),
-            name: 'urlSuffix',
-            value: editNode.urlSuffix,
-          }) }}
-
-          {{ forms.textareaField({
-            label: "Custom attributes (JSON)"|t('menu'),
-            instructions: 'Optional object, e.g. {"data-nav":"primary"}'|t('menu'),
-            name: 'customAttributes',
-            value: editNode.customAttributesArray ? editNode.customAttributesArray|json_encode : '',
-            rows: 3,
-          }) }}
-
-          {{ forms.lightswitchField({
-            label: "Open in new window"|t('menu'),
-            name: 'newWindow',
-            on: editNode.newWindow,
-          }) }}
-
-          {{ forms.lightswitchField({
-            label: "Follow linked element title"|t('menu'),
-            name: 'followElement',
-            on: editNode.followElement,
-          }) }}
-
-          {{ forms.lightswitchField({
-            label: "Enabled"|t('app'),
-            name: 'enabled',
-            on: editNode.enabled ?? true,
-          }) }}
-
-          {% if nodeFieldLayout %}
-            <hr>
-            {{ nodeFieldLayout.createForm(editNode).render()|raw }}
-          {% endif %}
-
-          <div class="buttons">
-            <button class="btn submit" type="submit">{{ "Save"|t('app') }}</button>
-            {% if editNode.id %}
-              <a class="btn" href="{{ url('menu/' ~ menu.id ~ '/nodes', { siteId: siteId }) }}">{{ "Cancel"|t('app') }}</a>
-            {% endif %}
-          </div>
-        </form>
+            <div class="menu-editor__footer">
+              <button class="btn submit" type="submit">{{ "Save"|t('app') }}</button>
+              {% if editNode.id %}
+                <a class="btn" href="{{ url('menu/' ~ menu.id ~ '/nodes', { siteId: siteId }) }}">{{ "Cancel"|t('app') }}</a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
       </div>
     {% endif %}
   </div>
 
   {% if canEdit %}
-    <div class="pane" style="margin-top: 14px;">
-      <h2>{{ "Import JSON"|t('menu') }}</h2>
-      <form method="post">
-        {{ csrfInput() }}
-        {{ actionInput('menu/import-export/import') }}
-        {{ forms.textareaField({
-          label: "Menu JSON"|t('menu'),
-          name: 'json',
-          rows: 8,
-          first: true,
-        }) }}
-        {{ forms.lightswitchField({
-          label: "Replace existing menu with same handle"|t('menu'),
-          name: 'replace',
-          on: false,
-        }) }}
-        <button class="btn" type="submit">{{ "Import"|t('app') }}</button>
-      </form>
-    </div>
+    <details class="menu-cp__pane menu-cp__import">
+      <summary>{{ "Import JSON"|t('menu') }}</summary>
+      <div class="menu-cp__pane-body">
+        <form method="post">
+          {{ csrfInput() }}
+          {{ actionInput('menu/import-export/import') }}
+          {{ forms.textareaField({
+            label: "Menu JSON"|t('menu'),
+            name: 'json',
+            rows: 8,
+            first: true,
+          }) }}
+          {{ forms.lightswitchField({
+            label: "Replace existing menu with same handle"|t('menu'),
+            name: 'replace',
+            on: false,
+          }) }}
+          <button class="btn" type="submit">{{ "Import"|t('app') }}</button>
+        </form>
+      </div>
+    </details>
   {% endif %}
-
-  <script>
-    (function () {
-      var select = document.getElementById('node-type');
-      if (!select) return;
-      var sync = function () {
-        document.querySelectorAll('[data-node-type-panel]').forEach(function (panel) {
-          var on = panel.getAttribute('data-node-type-panel') === select.value;
-          panel.hidden = !on;
-          panel.querySelectorAll('input, select, textarea').forEach(function (input) {
-            input.disabled = !on;
-          });
-        });
-        syncDynamic();
-      };
-      var dyn = document.getElementById('dynamic-source');
-      var syncDynamic = function () {
-        if (!dyn) return;
-        var src = dyn.value;
-        document.querySelectorAll('[data-dynamic-panel]').forEach(function (panel) {
-          var on = panel.getAttribute('data-dynamic-panel') === src;
-          panel.hidden = !on;
-          panel.querySelectorAll('input, select, textarea').forEach(function (input) {
-            input.disabled = !on;
-          });
-        });
-      };
-      select.addEventListener('change', sync);
-      if (dyn) dyn.addEventListener('change', syncDynamic);
-      sync();
-    })();
-  </script>
 {% endblock %}

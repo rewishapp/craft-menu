@@ -9,8 +9,14 @@
 
 {% block content %}
   {% if menus is empty %}
-    <div class="pane">
-      <p>{{ "No menus yet. Create one to start building navigation."|t('menu') }}</p>
+    <div class="pane" style="text-align: center; padding: 40px 20px;">
+      <p style="margin: 0 0 6px; font-size: 15px; font-weight: 600;">{{ "No menus yet"|t('menu') }}</p>
+      <p class="light" style="margin: 0;">{{ "Create one to start building navigation."|t('menu') }}</p>
+      {% if canCreate %}
+        <p style="margin-top: 16px;">
+          <a class="btn submit" href="{{ url('menu/new') }}">{{ "New menu"|t('menu') }}</a>
+        </p>
+      {% endif %}
     </div>
   {% else %}
     <div class="pane">
@@ -19,16 +25,21 @@
           <tr>
             <th>{{ "Name"|t('app') }}</th>
             <th>{{ "Handle"|t('app') }}</th>
-            <th></th>
+            <th>{{ "Nodes"|t('menu') }}</th>
+            <th class="thin"></th>
           </tr>
         </thead>
         <tbody>
           {% for menu in menus %}
             <tr>
-              <td><a href="{{ url('menu/' ~ menu.id ~ '/nodes') }}">{{ menu.title }}</a></td>
+              <td>
+                <a href="{{ url('menu/' ~ menu.id ~ '/nodes') }}"><strong>{{ menu.title }}</strong></a>
+              </td>
               <td><code>{{ menu.handle }}</code></td>
-              <td class="thin">
+              <td>{{ nodeCounts[menu.id] ?? 0 }}</td>
+              <td class="thin rightalign">
                 <a class="btn small" href="{{ url('menu/' ~ menu.id) }}">{{ "Settings"|t('app') }}</a>
+                <a class="btn small" href="{{ url('menu/' ~ menu.id ~ '/nodes') }}">{{ "Edit nodes"|t('menu') }}</a>
               </td>
             </tr>
           {% endfor %}

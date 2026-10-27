@@ -1,0 +1,68 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+{% set title = isNew ? "New menu"|t('menu') : menu.title %}
+{% set selectedSubnavItem = "menus" %}
+{% set fullPageForm = true %}
+
+{% block content %}
+  {{ actionInput('menu/menus/save') }}
+  {% if menu.id %}{{ hiddenInput('menuId', menu.id) }}{% endif %}
+
+  {{ forms.textField({
+    label: "Name"|t('app'),
+    id: 'title',
+    name: 'title',
+    value: menu.title,
+    required: true,
+    first: true,
+  }) }}
+
+  {{ forms.textField({
+    label: "Handle"|t('app'),
+    id: 'handle',
+    name: 'handle',
+    value: menu.handle,
+    required: true,
+  }) }}
+
+  {{ forms.textareaField({
+    label: "Instructions"|t('app'),
+    name: 'instructions',
+    value: menu.instructions,
+    rows: 3,
+  }) }}
+
+  {{ forms.textField({
+    label: "Max levels"|t('menu'),
+    instructions: "How deep nodes can nest."|t('menu'),
+    name: 'maxLevels',
+    value: menu.maxLevels,
+    type: 'number',
+    min: 1,
+    max: 20,
+  }) }}
+
+  {% if sites|length > 1 %}
+    <fieldset>
+      <legend>{{ "Sites"|t('app') }}</legend>
+      <p class="light">{{ "Choose which sites this menu is available on."|t('menu') }}</p>
+      {% for site in sites %}
+        {{ forms.checkboxField({
+          label: site.name,
+          name: 'siteIds[]',
+          value: site.id,
+          checked: site.id in enabledSiteIds,
+        }) }}
+      {% endfor %}
+    </fieldset>
+  {% else %}
+    {% for site in sites %}
+      {{ hiddenInput('siteIds[]', site.id) }}
+    {% endfor %}
+  {% endif %}
+
+  <hr>
+  {{ forms.fieldLayoutDesignerField({
+    fieldLayout: nodeFieldLayout,
+  }) }}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "_layouts/cp" %}
+{% set title = "Menus"|t('menu') %}
+{% set selectedSubnavItem = "menus" %}
+{% set actionButton %}
+  {% if canCreate %}
+    <a class="btn submit" href="{{ url('menu/new') }}">{{ "New menu"|t('menu') }}</a>
+  {% endif %}
+{% endset %}
+
+{% block content %}
+  {% if menus is empty %}
+    <div class="pane">
+      <p>{{ "No menus yet. Create one to start building navigation."|t('menu') }}</p>
+    </div>
+  {% else %}
+    <div class="pane">
+      <table class="data fullwidth">
+        <thead>
+          <tr>
+            <th>{{ "Name"|t('app') }}</th>
+            <th>{{ "Handle"|t('app') }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for menu in menus %}
+            <tr>
+              <td><a href="{{ url('menu/' ~ menu.id ~ '/nodes') }}">{{ menu.title }}</a></td>
+              <td><code>{{ menu.handle }}</code></td>
+              <td class="thin">
+                <a class="btn small" href="{{ url('menu/' ~ menu.id) }}">{{ "Settings"|t('app') }}</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

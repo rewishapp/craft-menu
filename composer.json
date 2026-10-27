@@ -1,0 +1,65 @@
+{
+  "name": "rewi.sh/menu",
+  "description": "Menus for Craft CMS. Nested navigation with element links, custom URLs, and Twig helpers.",
+  "type": "craft-plugin",
+  "license": "MIT",
+  "version": "1.0.0",
+  "homepage": "https://rewi.sh",
+  "keywords": [
+    "craftcms",
+    "craft-plugin",
+    "menu",
+    "navigation"
+  ],
+  "authors": [
+    {
+      "name": "rewi.sh",
+      "homepage": "https://rewi.sh"
+    }
+  ],
+  "support": {
+    "docs": "https://github.com/rewishapp/menu#readme",
+    "issues": "https://github.com/rewishapp/menu/issues",
+    "source": "https://github.com/rewishapp/menu"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.0.0 || ^6.0"
+  },
+  "require-dev": {
+    "php-cs-fixer/shim": "^3.85",
+    "phpunit/phpunit": "^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "rewish\\craft\\menu\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "rewish\\craft\\menu\\tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "handle": "menu",
+    "name": "Menu",
+    "developer": "rewi.sh",
+    "developerUrl": "https://rewi.sh",
+    "documentationUrl": "https://github.com/rewishapp/menu/blob/main/README.md",
+    "changelogUrl": "https://raw.githubusercontent.com/rewishapp/menu/main/CHANGELOG.md",
+    "class": "rewish\\craft\\menu\\Plugin"
+  },
+  "config": {
+    "allow-plugins": {
+      "craftcms/plugin-installer": true,
+      "yiisoft/yii2-composer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit",
+    "fix": "vendor/bin/php-cs-fixer fix --diff --config=./.php-cs-fixer.dist.php",
+    "fix:dry-run": "vendor/bin/php-cs-fixer fix --dry-run --diff --config=./.php-cs-fixer.dist.php",
+    "lint": "@fix:dry-run"
+  }
+}

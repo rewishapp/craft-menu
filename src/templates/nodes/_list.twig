@@ -1,0 +1,44 @@
+{% if canEdit and nodes|length %}
+  <p class="menu-builder__hint">{{ "Drag the handle to reorder. Drop on the top/bottom edge to place before/after, or in the middle to nest."|t('menu') }}</p>
+{% endif %}
+{% if nodes is empty %}
+  <p>{{ "No nodes yet. Add one with the form."|t('menu') }}</p>
+{% else %}
+  <ul
+    class="menu-builder"
+    data-menu-builder
+    data-menu-id="{{ menu.id }}"
+    data-site-id="{{ siteId }}"
+    data-move-url="{{ actionUrl('menu/nodes/move') }}"
+    data-list-url="{{ url('menu/' ~ menu.id ~ '/nodes/list', { siteId: siteId }) }}"
+  >
+    {% for node in nodes %}
+      <li
+        class="menu-builder__row"
+        data-node-id="{{ node.id }}"
+        style="margin-left: {{ node.levelIndent * 18 }}px;"
+      >
+        {% if canEdit %}
+          <span class="menu-builder__handle" data-drag-handle title="{{ "Drag to reorder"|t('menu') }}" tabindex="0">⠿</span>
+        {% endif %}
+        <div class="menu-builder__title">
+          <a href="{{ url('menu/' ~ menu.id ~ '/nodes', { nodeId: node.id, siteId: siteId }) }}">{{ node.title }}</a>
+        </div>
+        <span class="menu-builder__meta">{{ types[node.type] ?? node.type }}</span>
+        <span class="menu-builder__meta"><code>{{ node.nodeUrl ?? '—' }}</code></span>
+        {% if canEdit %}
+          <div class="menu-builder__actions">
+            <form method="post">
+              {{ csrfInput() }}
+              {{ actionInput('menu/nodes/delete') }}
+              {{ hiddenInput('menuId', menu.id) }}
+              {{ hiddenInput('siteId', siteId) }}
+              {{ hiddenInput('nodeId', node.id) }}
+              <button class="btn small" type="submit" onclick="return confirm('{{ "Delete this node?"|t('menu') }}')">{{ "Delete"|t('app') }}</button>
+            </form>
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

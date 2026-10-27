@@ -1,0 +1,20 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+{% set title = "Settings"|t('app') %}
+{% set selectedSubnavItem = "settings" %}
+{% set fullPageForm = true %}
+
+{% block content %}
+  {{ actionInput('menu/settings/save') }}
+
+  {{ forms.textField({
+    label: "Default max levels"|t('menu'),
+    instructions: "Used when creating a new menu."|t('menu'),
+    name: 'defaultMaxLevels',
+    value: settings.defaultMaxLevels,
+    type: 'number',
+    min: 1,
+    max: 20,
+    first: true,
+  }) }}
+{% endblock %}

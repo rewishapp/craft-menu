@@ -1,0 +1,30 @@
+{% extends "_layouts/cp" %}
+{% set title = "Migrate"|t('menu') %}
+{% set selectedSubnavItem = "migrate" %}
+
+{% block content %}
+  <div class="pane">
+    <h2>{{ "Migrate from Verbb"|t('menu') }}</h2>
+    <p>{{ verbb.message }}</p>
+    {% if verbb.available %}
+      <ul>
+        <li>{{ "Plugin installed:"|t('menu') }} {{ verbb.plugin ? "yes"|t('app') : "no"|t('app') }}</li>
+        <li>{{ "Menus:"|t('menu') }} {{ verbb.menus }}</li>
+        <li>{{ "Nodes:"|t('menu') }} {{ verbb.nodes }}</li>
+      </ul>
+      <p class="light">{{ "Existing Menu handles are skipped. Unsupported node types (e.g. Product, Dynamic) are skipped."|t('menu') }}</p>
+      <form method="post" style="display: inline-block; margin-right: 8px;">
+        {{ csrfInput() }}
+        {{ actionInput('menu/migrate/verbb') }}
+        {{ hiddenInput('dryRun', '1') }}
+        <button class="btn" type="submit">{{ "Dry-run migrate"|t('menu') }}</button>
+      </form>
+      <form method="post" style="display: inline-block;" onsubmit="return confirm('{{ "Import menus and nodes into Menu now?"|t('menu') }}')">
+        {{ csrfInput() }}
+        {{ actionInput('menu/migrate/verbb') }}
+        {{ hiddenInput('dryRun', '0') }}
+        <button class="btn submit" type="submit">{{ "Run migrate"|t('menu') }}</button>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}

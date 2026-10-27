@@ -4,7 +4,7 @@ Nested **menus**, **navigation**, and **navbar** builder for Craft CMS — site 
 
 **Menu** (package `rewi.sh/menu`) lets authors build **main navigation**, **header nav**, **footer menus**, **utility nav**, **sidebar menus**, and multi-level **dropdown** / **mega-menu** style trees. Link to custom URLs or Craft elements (entries, categories, assets, sites, and Commerce products when installed). Use **passive** labels, **dynamic** sources (projected children), and per-menu sites. Twig and GraphQL expose the tree for the front end — including **active** / **current** states and **breadcrumbs**.
 
-Searchable as: menu, menus, navigation, nav, navbar, site nav, main menu, header menu, footer menu, utility navigation, sidebar nav, submenu, nested menu, dropdown menu, mega menu, breadcrumbs, menu builder, navigation builder, Craft CMS menu plugin, Craft navigation plugin. Compatible mindset with migrating from Verbb Navigation.
+Built for site navigation and navbar work — main, header, footer, utility, and sidebar menus — with nested dropdowns, breadcrumbs, and a CP builder. Includes a migrator for Verbb Navigation.
 
 ## Control panel
 

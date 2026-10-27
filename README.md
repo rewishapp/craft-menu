@@ -4,7 +4,7 @@ Nested site menus for Craft CMS. Built by [rewi.sh](https://rewi.sh).
 
 Package `rewi.sh/menu`. Handle **`menu`**. Craft 5.0+ / 6.0+. PHP 8.2+.
 
-CP translations (same set as Freeform): **en**, **de**, **fr**, **it**, **nl**.
+Control panel translations: **en**, **de**, **fr**, **it**, **nl**.
 
 ## Install
 

@@ -9,7 +9,7 @@
 - Migrate from Verbb lives under **Settings** (nav no longer has a separate Migrate item).
 - Menus index shows node counts.
 - Plugin docs under `docs/` (Twig, GraphQL, CP, migrate).
-- CP translations matching Freeform locales: `en`, `de`, `fr`, `it`, `nl`.
+- CP translations: `en`, `de`, `fr`, `it`, `nl`.
 - CP site switcher for node editing; build sessions with discard/restore snapshot.
 - Commerce Product node type + product-type dynamic source (when Commerce is installed).
 - Schema **0.2.1** (`menu_build_sessions`).

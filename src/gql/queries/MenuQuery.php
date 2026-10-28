@@ -28,7 +28,7 @@ class MenuQuery extends Query
             'menus' => [
                 'type' => Type::listOf(MenuType::getType()),
                 'resolve' => static function () {
-                    return Plugin::getInstance()?->menus->getAll() ?? [];
+                    return Plugin::getInstance()?->menus->getAll(null, true) ?? [];
                 },
                 'description' => 'Return all menus.',
             ],
@@ -44,7 +44,11 @@ class MenuQuery extends Query
                         return [];
                     }
 
-                    $nodes = Plugin::getInstance()->nodes->getForMenu((int) $menu->id);
+                    $nodesService = Plugin::getInstance()->nodes;
+                    $siteId = (int) \Craft::$app->getSites()->getCurrentSite()->id;
+                    $tree = $nodesService->getTree((int) $menu->id, $siteId);
+                    $nodesService->attachTreeChildren($tree);
+                    $nodes = $nodesService->flatten($tree);
                     if (isset($arguments['level'])) {
                         $level = (int) $arguments['level'];
                         $nodes = array_values(array_filter(

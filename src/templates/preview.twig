@@ -1,0 +1,36 @@
+{% extends "_layouts/cp" %}
+{% import 'menu/_macros/nav' as nav %}
+{% set title = "Preview"|t('menu') ~ ': ' ~ menu.title %}
+{% set selectedSubnavItem = "menus" %}
+{% set crumbs = [
+  { label: "Menus"|t('menu'), url: url('menu') },
+  { label: menu.title, url: url('menu/' ~ menu.id ~ '/nodes') },
+] %}
+
+{% block content %}
+  <div class="menu-preview">
+    <div class="menu-preview__bar">
+      {% if sites|length > 1 %}
+        <span class="menu-cp__sites-label">{{ "Site"|t('app') }}</span>
+        {% for site in sites %}
+          <a class="btn small{% if site.id == siteId %} primary{% endif %}" href="{{ url('menu/' ~ menu.id ~ '/preview', { siteId: site.id, raw: raw ? 1 : null, uri: uri ?: null }) }}">{{ site.name }}</a>
+        {% endfor %}
+      {% endif %}
+      <a class="btn small{% if not raw %} primary{% endif %}" href="{{ url('menu/' ~ menu.id ~ '/preview', { siteId: siteId, uri: uri ?: null }) }}">{{ "Visible"|t('menu') }}</a>
+      <a class="btn small{% if raw %} primary{% endif %}" href="{{ url('menu/' ~ menu.id ~ '/preview', { siteId: siteId, raw: 1, uri: uri ?: null }) }}">{{ "All nodes"|t('menu') }}</a>
+      <a class="btn small" href="{{ url('menu/' ~ menu.id ~ '/nodes', { siteId: siteId }) }}">{{ "Back to nodes"|t('menu') }}</a>
+    </div>
+
+    {% if not menuEnabled and not raw %}
+      <p class="menu-editor__note">{{ "This menu is disabled, so it renders nothing on the front end."|t('menu') }}</p>
+    {% endif %}
+
+    <div class="menu-preview__frame">
+      {% if tree is empty %}
+        <p class="light">{{ "Nothing to show for this site."|t('menu') }}</p>
+      {% else %}
+        {{ nav.renderNav(tree, { menu: menu, ariaLabel: menu.title }) }}
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

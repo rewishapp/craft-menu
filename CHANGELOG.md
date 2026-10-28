@@ -1,5 +1,28 @@
 # Release Notes for Menu
 
+## 1.1.0
+
+### Added
+- **Anchor** (`#fragment`) and **Separator** node types.
+- Per-node meta (stored under `data.meta`, no new columns): HTML ID, ARIA label, title attribute, `rel`, clickable toggle, badge text/style, icon class, description, featured, mega-menu settings (columns / column), mobile options (hide, order, collapsible).
+- **Visibility rules** per node (always, logged in/out, user group, site, date range, environment). All rules must pass; a hidden node hides its whole subtree. Applied by `craft.menu.tree()`, `activeTree()`, GraphQL, the JSON API, and the CP preview.
+- **Missing-element fallback** for linked nodes: hide, keep as plain label, or use a fallback URL.
+- **Link health** checks (ok / warning / broken) shown in the node list and on the Menus index.
+- **Duplicate** a menu (settings, field layout, and node tree) or a single node with its descendants.
+- **Bulk actions** in the node list: enable, disable, delete selected.
+- Node list polish: indent rails, live filter, link-health dot, visit link, denser rows, keyboard reordering (↑ / ↓ on a focused handle).
+- Node editor grouped into Link, Appearance, Accessibility, Visibility, Mega menu, Mobile, and Advanced sections.
+- Menu **enabled** toggle (disabled menus render nothing), plus menu **CSS class** and **HTML attributes**.
+- Dynamic sources: **order by** title (A–Z / Z–A) or date (newest / oldest).
+- `menu/_macros/nav` Twig macro `renderNav(tree, options)` and `craft.menu.render(handle, options)`: `<nav>` landmark, nested lists, `aria-current`, `<details>` mega panels.
+- **Menu field type** (dropdown of menus; value is the menu).
+- CP **Preview** page for a menu per site (visible vs. all nodes).
+- Optional read-only **JSON API** (`/menu-api/menus`, `/menu-api/menus/<handle>`), enabled only when an API token is set in Settings.
+- GraphQL: node `htmlId`, `ariaLabel`, `titleAttr`, `badgeText`, `badgeStyle`, `iconClass`, `description`, `rel`, `featured`, `megaEnabled`, `megaColumns`, `clickable`, `separator`, `activeAncestor`; menu `cssClass`, `htmlAttributes`, `enabled`. `menuNodes` now honors visibility rules.
+- Services: `visibility`, `linkHealth`, `duplicators`, `menuCache`.
+- Schema **0.3.0** (`menu_menus.cssClass`, `menu_menus.htmlAttributes`).
+- Import / export carry the new menu and node fields.
+
 ## 1.0.0
 
 ### Added

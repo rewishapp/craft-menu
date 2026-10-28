@@ -12,6 +12,10 @@ Each item is `{ node, children }`. Dynamic nodes expand projected children into 
 
 Use `node.nodeUrl`, `node.title`, `node.newWindow`, `node.classes`, etc.
 
+Trees are **resolved for display**: disabled menus return nothing, and disabled, unavailable, or rule-hidden nodes are removed together with their children.
+
+Each node also exposes `node.meta` (htmlId, ariaLabel, titleAttr, rel, clickable, badgeText, badgeStyle, iconClass, description, featured, megaEnabled, megaColumns, megaColumn, mobileHidden, mobileOrder, mobileCollapsible) and `node.type` (`separator` / `anchor` included).
+
 ## Active tree
 
 ```twig
@@ -40,6 +44,23 @@ Same shape as `tree()`, plus:
     </li>
   {% endfor %}
 </ul>
+```
+
+## Render helper
+
+```twig
+{{ craft.menu.render('main', { ariaLabel: 'Main', class: 'site-nav' }) }}
+```
+
+Renders a `<nav>` landmark with nested lists, `aria-current="page"` on the current item, separators, badges, and `<details>` mega panels for nodes with mega enabled. Pass a `Menu` (for example a Menu field value) instead of a handle if you prefer.
+
+Options: `ariaLabel`, `class`, `listClass`, `itemClass`, `linkClass`, `activeClass`, `currentClass`, `maxDepth`, `uri`, `siteId`.
+
+Or use the macro directly:
+
+```twig
+{% import 'menu/_macros/nav' as nav %}
+{{ nav.renderNav(craft.menu.activeTree('main'), { ariaLabel: 'Main' }) }}
 ```
 
 ## Breadcrumbs

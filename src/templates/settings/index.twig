@@ -25,6 +25,13 @@
               max: 20,
               first: true,
             }) }}
+            {{ forms.autosuggestField({
+              label: "API token"|t('menu'),
+              instructions: "Enables the read-only JSON API (/menu-api/menus). Leave empty to disable. Send as ?token= or an Authorization: Bearer header. Supports environment variables."|t('menu'),
+              name: 'apiToken',
+              value: settings.apiToken,
+              suggestEnvVars: true,
+            }) }}
             <div class="menu-settings__actions">
               <button class="btn submit" type="submit">{{ "Save"|t('app') }}</button>
             </div>

@@ -15,13 +15,16 @@ class ImportExport extends Component
      */
     public function exportMenu(Menu $menu): array
     {
-        $tree = Plugin::getInstance()->nodes->getTree((int) $menu->id);
+        $tree = Plugin::getInstance()->nodes->getTree((int) $menu->id, null, false);
 
         return [
             'handle' => (string) $menu->handle,
             'title' => (string) $menu->title,
             'maxLevels' => $menu->maxLevels,
             'instructions' => $menu->instructions,
+            'cssClass' => $menu->cssClass,
+            'htmlAttributes' => $menu->htmlAttributes,
+            'enabled' => (bool) $menu->enabled,
             'nodes' => $this->exportBranch($tree),
         ];
     }
@@ -37,18 +40,20 @@ class ImportExport extends Component
             return ['ok' => false, 'menu' => null, 'message' => 'JSON needs handle and title.'];
         }
 
-        $existing = Plugin::getInstance()->menus->getByHandle($handle);
+        $existing = Plugin::getInstance()->menus->getByHandle($handle, true);
         if ($existing && !$replace) {
             return ['ok' => false, 'menu' => $existing, 'message' => "Menu “{$handle}” already exists. Enable replace to overwrite nodes."];
         }
 
         if ($existing && $replace) {
-            foreach (Plugin::getInstance()->nodes->getForMenu((int) $existing->id) as $node) {
+            foreach (Plugin::getInstance()->nodes->getForMenu((int) $existing->id, null, true) as $node) {
                 \Craft::$app->getElements()->deleteElement($node, true);
             }
             $menu = $existing;
             $menu->title = $title;
             $menu->instructions = $payload['instructions'] ?? $menu->instructions;
+            $menu->cssClass = $payload['cssClass'] ?? $menu->cssClass;
+            $menu->htmlAttributes = $payload['htmlAttributes'] ?? $menu->htmlAttributes;
             if (isset($payload['maxLevels'])) {
                 $menu->maxLevels = (int) $payload['maxLevels'] ?: null;
             }
@@ -57,6 +62,11 @@ class ImportExport extends Component
             $menu->title = $title;
             $menu->handle = $handle;
             $menu->instructions = $payload['instructions'] ?? null;
+            $menu->cssClass = $payload['cssClass'] ?? null;
+            $menu->htmlAttributes = $payload['htmlAttributes'] ?? null;
+            if (isset($payload['enabled'])) {
+                $menu->enabled = (bool) $payload['enabled'];
+            }
             $menu->maxLevels = isset($payload['maxLevels']) ? ((int) $payload['maxLevels'] ?: null) : Plugin::settings()->defaultMaxLevels;
         }
 

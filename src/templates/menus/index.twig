@@ -25,7 +25,9 @@
           <tr>
             <th>{{ "Name"|t('app') }}</th>
             <th>{{ "Handle"|t('app') }}</th>
+            <th>{{ "Status"|t('app') }}</th>
             <th>{{ "Nodes"|t('menu') }}</th>
+            <th>{{ "Links"|t('menu') }}</th>
             <th class="thin"></th>
           </tr>
         </thead>
@@ -36,10 +38,32 @@
                 <a href="{{ url('menu/' ~ menu.id ~ '/nodes') }}"><strong>{{ menu.title }}</strong></a>
               </td>
               <td><code>{{ menu.handle }}</code></td>
+              <td>
+                <span class="status {{ menu.enabled ? 'enabled' : 'disabled' }}"></span>
+                {{ menu.enabled ? "Enabled"|t('app') : "Disabled"|t('app') }}
+              </td>
               <td>{{ nodeCounts[menu.id] ?? 0 }}</td>
+              <td>
+                {% set h = health[menu.id] ?? null %}
+                {% if h and (h.broken or h.warning) %}
+                  {% if h.broken %}<span class="menu-builder__flag menu-builder__flag--critical" title="{{ "Broken links"|t('menu') }}">{{ h.broken }} {{ "broken"|t('menu') }}</span>{% endif %}
+                  {% if h.warning %}<span class="menu-builder__flag menu-builder__flag--warning" title="{{ "Links with warnings"|t('menu') }}">{{ h.warning }} {{ "warn"|t('menu') }}</span>{% endif %}
+                {% else %}
+                  <span class="light">{{ "OK"|t('menu') }}</span>
+                {% endif %}
+              </td>
               <td class="thin rightalign">
                 <a class="btn small" href="{{ url('menu/' ~ menu.id) }}">{{ "Settings"|t('app') }}</a>
                 <a class="btn small" href="{{ url('menu/' ~ menu.id ~ '/nodes') }}">{{ "Edit nodes"|t('menu') }}</a>
+                <a class="btn small" href="{{ url('menu/' ~ menu.id ~ '/preview') }}">{{ "Preview"|t('menu') }}</a>
+                {% if canCreate %}
+                  <form method="post" style="display: inline;">
+                    {{ csrfInput() }}
+                    {{ actionInput('menu/menus/duplicate') }}
+                    {{ hiddenInput('menuId', menu.id) }}
+                    <button class="btn small" type="submit">{{ "Duplicate"|t('menu') }}</button>
+                  </form>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

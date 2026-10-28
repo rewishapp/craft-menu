@@ -21,7 +21,10 @@ ddev composer require "rewi.sh/menu:^1.0.0" -w && ddev craft plugin/install menu
 ## What you get
 
 - CP section **Menu** — create menus and drag-drop nested nodes
-- Node types: custom URL, entry, category, asset, product (Commerce), passive, site, dynamic (section / category group / asset volume / product type → projected children)
+- Node types: custom URL, entry, category, asset, product (Commerce), passive, site, anchor, separator, dynamic (section / category group / asset volume / product type → projected children, ordered by title or date)
+- Per-node visibility rules, missing-element fallback, link health, badges, icons, mega-menu and mobile options
+- Duplicate menus and nodes, bulk enable / disable / delete, live filter, CP preview
+- Menu field type, `craft.menu.render()` accessible nav macro, optional token-protected JSON API
 - Per-menu sites, node field layouts, and manage permissions
 - CSS classes, URL suffix, custom attributes, new window
 - Twig: `craft.menu.tree()`, `activeTree()`, `breadcrumbs()`, `isActive` / `isCurrent`

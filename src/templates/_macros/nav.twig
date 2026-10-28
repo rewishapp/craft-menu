@@ -1,0 +1,129 @@
+{#
+  Accessible nested navigation.
+
+  {% import 'menu/_macros/nav' as nav %}
+  {{ nav.renderNav(craft.menu.activeTree('main'), { ariaLabel: 'Main' }) }}
+
+  Options: ariaLabel, class, listClass, itemClass, linkClass, activeClass, currentClass, menu (Menu element), maxDepth
+#}
+
+{% macro renderNav(tree, options = {}) %}
+  {% import _self as m %}
+  {% set options = {
+    ariaLabel: null,
+    class: null,
+    listClass: 'menu__list',
+    itemClass: 'menu__item',
+    linkClass: 'menu__link',
+    activeClass: 'is-active',
+    currentClass: 'is-current',
+    maxDepth: null,
+    menu: null,
+  }|merge(options) %}
+  {% set menu = options.menu %}
+  {% set label = options.ariaLabel ?: (menu ? menu.title : null) %}
+  {% set navClass = ['menu', options.class]|filter|join(' ') %}
+  {% if menu and menu.cssClass %}
+    {% set navClass = navClass ~ ' ' ~ menu.cssClass %}
+  {% endif %}
+  {% if tree|length %}
+    <nav class="{{ navClass|trim }}"{% if label %} aria-label="{{ label }}"{% endif %}{% if menu %}{% for key, value in menu.htmlAttributesArray %} {{ key }}="{{ value }}"{% endfor %}{% endif %}>
+      {{ m.renderList(tree, options, 1) }}
+    </nav>
+  {% endif %}
+{% endmacro %}
+
+{% macro renderList(items, options, depth = 1) %}
+  {% import _self as m %}
+  {% set nested = depth > 1 %}
+  <ul class="{{ options.listClass }}{% if nested %} {{ options.listClass }}--nested{% endif %}" data-depth="{{ depth }}">
+    {% for item in items %}
+      {% set node = item.node %}
+      {% set meta = node.meta is defined ? node.meta : {
+        htmlId: null, ariaLabel: null, titleAttr: null, rel: null, clickable: true,
+        badgeText: null, badgeStyle: 'default', iconClass: null, description: null,
+        featured: false, megaEnabled: false, megaColumns: 1, megaColumn: 1,
+        mobileHidden: false, mobileOrder: null, mobileCollapsible: false
+      } %}
+      {% set url = node.nodeUrl ?? null %}
+      {% set isSeparator = (node.type ?? '') == 'separator' %}
+      {% set children = item.children ?? [] %}
+      {% set isActive = item.active ?? false %}
+      {% set isCurrent = item.current ?? false %}
+      {% set withinDepth = options.maxDepth is null or depth < options.maxDepth %}
+      {% set hasChildren = withinDepth and children|length > 0 %}
+      {% set isMega = hasChildren and (meta.megaEnabled ?? false) %}
+      {% set itemClass = options.itemClass %}
+      {% set itemClasses = [itemClass]|filter %}
+      {% if node.classes %}{% set itemClasses = itemClasses|merge([node.classes]) %}{% endif %}
+      {% if isSeparator %}{% set itemClasses = itemClasses|merge([itemClass ~ '--separator']) %}{% endif %}
+      {% if hasChildren %}{% set itemClasses = itemClasses|merge([itemClass ~ '--has-children']) %}{% endif %}
+      {% if isMega %}{% set itemClasses = itemClasses|merge([itemClass ~ '--mega']) %}{% endif %}
+      {% if meta.featured %}{% set itemClasses = itemClasses|merge([itemClass ~ '--featured']) %}{% endif %}
+      {% if meta.mobileHidden %}{% set itemClasses = itemClasses|merge([itemClass ~ '--mobile-hidden']) %}{% endif %}
+      {% if isActive and options.activeClass %}{% set itemClasses = itemClasses|merge([options.activeClass]) %}{% endif %}
+      {% if isCurrent and options.currentClass %}{% set itemClasses = itemClasses|merge([options.currentClass]) %}{% endif %}
+      {% set itemClassStr = itemClasses|join(' ') %}
+
+      {% if isSeparator %}
+        <li class="{{ itemClassStr }}" role="separator"{% if meta.htmlId %} id="{{ meta.htmlId }}"{% endif %}></li>
+      {% else %}
+        <li class="{{ itemClassStr }}"{% if meta.htmlId %} id="{{ meta.htmlId }}"{% endif %}{% if meta.mobileHidden %} data-mobile-hidden{% endif %}{% if meta.mobileCollapsible %} data-mobile-collapsible{% endif %}{% if meta.mobileOrder is not null %} style="--menu-mobile-order: {{ meta.mobileOrder }}"{% endif %}>
+          {% set labelHtml %}
+            {%- if meta.iconClass %}<i class="{{ meta.iconClass }}" aria-hidden="true"></i> {% endif -%}
+            <span class="menu__label">{{ node.title }}</span>
+            {%- if meta.badgeText %} <span class="menu__badge menu__badge--{{ meta.badgeStyle|default('default') }}">{{ meta.badgeText }}</span>{% endif -%}
+            {%- if meta.description %} <span class="menu__description">{{ meta.description }}</span>{% endif -%}
+          {% endset %}
+
+          {% set relParts = [] %}
+          {% if meta.rel %}{% set relParts = relParts|merge([meta.rel]) %}{% endif %}
+          {% if node.newWindow %}{% set relParts = relParts|merge(['noopener']) %}{% endif %}
+          {% set rel = relParts|join(' ') %}
+          {% set customAttributes = node.customAttributesArray ?? {} %}
+          {% set clickable = meta.clickable ?? true %}
+          {% set controlHtml %}
+            {% if url and clickable %}
+              <a class="{{ options.linkClass }}" href="{{ url }}"{% if isCurrent %} aria-current="page"{% endif %}{% if node.newWindow %} target="_blank"{% endif %}{% if rel %} rel="{{ rel }}"{% endif %}{% if meta.titleAttr %} title="{{ meta.titleAttr }}"{% endif %}{% if meta.ariaLabel %} aria-label="{{ meta.ariaLabel }}"{% endif %}{% for key, value in customAttributes %}{% if value is not iterable %} {{ key }}="{{ value }}"{% endif %}{% endfor %}>{{ labelHtml }}</a>
+            {% else %}
+              <span class="menu__text"{% if meta.titleAttr %} title="{{ meta.titleAttr }}"{% endif %}{% if meta.ariaLabel %} aria-label="{{ meta.ariaLabel }}"{% endif %}>{{ labelHtml }}</span>
+            {% endif %}
+          {% endset %}
+
+          {% if isMega %}
+            {% set columns = meta.megaColumns|default(1) %}
+            {% if columns < 1 %}{% set columns = 1 %}{% endif %}
+            {% if columns > 6 %}{% set columns = 6 %}{% endif %}
+            <details class="menu__mega" data-columns="{{ columns }}"{% if isActive %} open{% endif %}>
+              <summary class="menu__mega-summary">{{ controlHtml }}</summary>
+              <div class="menu__mega-panel" style="--menu-mega-columns: {{ columns }}">
+                {% for col in 1..columns %}
+                  {% set columnItems = [] %}
+                  {% for child in children %}
+                    {% set childMeta = child.node.meta is defined ? child.node.meta : {} %}
+                    {% set childCol = childMeta.megaColumn|default(1) %}
+                    {% if childCol < 1 %}{% set childCol = 1 %}{% endif %}
+                    {% if childCol > columns %}{% set childCol = columns %}{% endif %}
+                    {% if childCol == col %}
+                      {% set columnItems = columnItems|merge([child]) %}
+                    {% endif %}
+                  {% endfor %}
+                  {% if columnItems|length %}
+                    <div class="menu__mega-col" data-column="{{ col }}">
+                      {{ m.renderList(columnItems, options, depth + 1) }}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </details>
+          {% else %}
+            {{ controlHtml }}
+            {% if hasChildren %}
+              {{ m.renderList(children, options, depth + 1) }}
+            {% endif %}
+          {% endif %}
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+{% endmacro %}

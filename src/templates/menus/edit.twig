@@ -8,13 +8,20 @@
   {{ actionInput('menu/menus/save') }}
   {% if menu.id %}{{ hiddenInput('menuId', menu.id) }}{% endif %}
 
+  {{ forms.lightswitchField({
+    label: "Enabled"|t('app'),
+    instructions: "Disabled menus render nothing on the front end and in GraphQL."|t('menu'),
+    name: 'enabled',
+    on: menu.enabled ?? true,
+    first: true,
+  }) }}
+
   {{ forms.textField({
     label: "Name"|t('app'),
     id: 'title',
     name: 'title',
     value: menu.title,
     required: true,
-    first: true,
   }) }}
 
   {{ forms.textField({
@@ -30,6 +37,23 @@
     name: 'instructions',
     value: menu.instructions,
     rows: 3,
+  }) }}
+
+  {{ forms.textField({
+    label: "CSS class"|t('menu'),
+    instructions: "Extra classes for the menu wrapper (<nav>) when rendered with the nav macro."|t('menu'),
+    id: 'cssClass',
+    name: 'cssClass',
+    value: menu.cssClass,
+  }) }}
+
+  {{ forms.textareaField({
+    label: "HTML attributes"|t('menu'),
+    instructions: 'JSON object or key="value" pairs for the menu wrapper, e.g. {"data-menu":"primary"}'|t('menu'),
+    id: 'htmlAttributes',
+    name: 'htmlAttributes',
+    value: menu.htmlAttributes,
+    rows: 2,
   }) }}
 
   {{ forms.textField({

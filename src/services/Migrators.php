@@ -89,7 +89,7 @@ class Migrators extends Component
         foreach ($sourceMenus as $row) {
             $handle = (string) $row['handle'];
             $title = (string) ($row['name'] ?: $handle);
-            $existing = Plugin::getInstance()->menus->getByHandle($handle);
+            $existing = Plugin::getInstance()->menus->getByHandle($handle, true);
 
             if ($existing) {
                 $lines[] = "Skip menu “{$handle}” — already exists in Menu.";

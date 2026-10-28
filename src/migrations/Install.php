@@ -18,6 +18,8 @@ class Install extends Migration
                 'maxLevels' => $this->smallInteger()->unsigned()->null(),
                 'sortOrder' => $this->smallInteger()->unsigned()->null(),
                 'nodeFieldLayoutId' => $this->integer()->null(),
+                'cssClass' => $this->string()->null(),
+                'htmlAttributes' => $this->text()->null(),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),

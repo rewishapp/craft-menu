@@ -41,6 +41,8 @@ class SettingsController extends Controller
         $plugin = Plugin::getInstance();
         $settings = Plugin::settings();
         $settings->defaultMaxLevels = (int) $this->request->getBodyParam('defaultMaxLevels', 5);
+        $apiToken = trim((string) $this->request->getBodyParam('apiToken', ''));
+        $settings->apiToken = $apiToken !== '' ? $apiToken : null;
         if (!$settings->validate()) {
             return $this->asFailure(\Craft::t('menu', 'Couldn’t save settings.'), ['settings' => $settings]);
         }

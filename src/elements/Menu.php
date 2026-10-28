@@ -5,6 +5,7 @@ namespace rewish\craft\menu\elements;
 use craft\base\Element;
 use craft\db\Query;
 use craft\elements\User;
+use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
@@ -27,6 +28,12 @@ class Menu extends Element
 
     public ?int $nodeFieldLayoutId = null;
 
+    /** Extra CSS classes for the menu wrapper (`<nav>`). */
+    public ?string $cssClass = null;
+
+    /** JSON object or `key="value"` pairs of extra attributes for the menu wrapper. */
+    public ?string $htmlAttributes = null;
+
     /** @var null|list<int> site IDs enabled for this menu; null = all sites */
     public ?array $enabledSiteIds = null;
 
@@ -46,6 +53,11 @@ class Menu extends Element
     }
 
     public static function hasTitles(): bool
+    {
+        return true;
+    }
+
+    public static function hasStatuses(): bool
     {
         return true;
     }
@@ -146,6 +158,49 @@ class Menu extends Element
         return \in_array($siteId, $this->getEnabledSiteIds(), true);
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function getHtmlAttributesArray(): array
+    {
+        return self::parseHtmlAttributes($this->htmlAttributes);
+    }
+
+    /**
+     * Accepts a JSON object or `data-x="y" aria-label="z"` style pairs.
+     *
+     * @return array<string, string>
+     */
+    public static function parseHtmlAttributes(?string $raw): array
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return [];
+        }
+
+        $out = [];
+        if ($raw[0] === '{') {
+            $decoded = Json::decodeIfJson($raw);
+            if (\is_array($decoded)) {
+                foreach ($decoded as $key => $value) {
+                    if (\is_string($key) && \is_scalar($value) && preg_match('/^[a-zA-Z_:][\w:.-]*$/', $key)) {
+                        $out[$key] = (string) $value;
+                    }
+                }
+            }
+
+            return $out;
+        }
+
+        if (preg_match_all('/([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/', $raw, $matches, \PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $out[$m[1]] = $m[3] ?? $m[2];
+            }
+        }
+
+        return $out;
+    }
+
     public function getNodeFieldLayout(): ?FieldLayout
     {
         if ($this->nodeFieldLayoutId) {
@@ -191,6 +246,8 @@ class Menu extends Element
         $record->maxLevels = $this->maxLevels;
         $record->sortOrder = $this->sortOrder;
         $record->nodeFieldLayoutId = $this->nodeFieldLayoutId;
+        $record->cssClass = $this->cssClass ?: null;
+        $record->htmlAttributes = $this->htmlAttributes ?: null;
         $record->save(false);
 
         $this->saveSiteRows();
@@ -266,6 +323,8 @@ class Menu extends Element
         $rules[] = [['handle'], 'string', 'max' => 64];
         $rules[] = [['handle'], 'match', 'pattern' => '/^[a-zA-Z][\w]*$/'];
         $rules[] = [['maxLevels'], 'integer', 'min' => 1, 'max' => 20];
+        $rules[] = [['cssClass'], 'string', 'max' => 255];
+        $rules[] = [['htmlAttributes'], 'string'];
 
         return $rules;
     }

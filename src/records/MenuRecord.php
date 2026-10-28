@@ -12,6 +12,8 @@ use craft\db\ActiveRecord;
  * @property null|int    $maxLevels
  * @property null|int    $sortOrder
  * @property null|int    $nodeFieldLayoutId
+ * @property null|string $cssClass
+ * @property null|string $htmlAttributes
  */
 class MenuRecord extends ActiveRecord
 {

@@ -30,7 +30,7 @@ class ActiveMatcher extends Component
      */
     public function pathFromUrl(?string $url): ?string
     {
-        if ($url === null || $url === '' || $url === '#') {
+        if ($url === null || $url === '' || $url[0] === '#') {
             return null;
         }
         $path = parse_url($url, \PHP_URL_PATH);
@@ -128,6 +128,12 @@ class ActiveMatcher extends Component
         $menu = Plugin::getInstance()?->menus->getByHandle($handle);
         if (!$menu?->id) {
             return [];
+        }
+
+        try {
+            $siteId ??= (int) \Craft::$app->getSites()->getCurrentSite()->id;
+        } catch (\Throwable) {
+            // Keep null: console / tests.
         }
 
         return $this->annotateTree(

@@ -31,6 +31,18 @@ class MenuType
                     'type' => Type::string(),
                     'resolve' => static fn (Menu $menu) => $menu->handle,
                 ],
+                'cssClass' => [
+                    'type' => Type::string(),
+                    'resolve' => static fn (Menu $menu) => $menu->cssClass,
+                ],
+                'htmlAttributes' => [
+                    'type' => Type::string(),
+                    'resolve' => static fn (Menu $menu) => $menu->htmlAttributes,
+                ],
+                'enabled' => [
+                    'type' => Type::boolean(),
+                    'resolve' => static fn (Menu $menu) => (bool) $menu->enabled,
+                ],
                 'maxLevels' => [
                     'type' => Type::int(),
                     'resolve' => static fn (Menu $menu) => $menu->maxLevels,

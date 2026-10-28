@@ -3,18 +3,24 @@
 namespace rewish\craft\menu\controllers;
 
 use craft\helpers\Json;
+use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use rewish\craft\menu\elements\Menu;
 use rewish\craft\menu\elements\Node;
+use rewish\craft\menu\helpers\NodeMeta;
 use rewish\craft\menu\Plugin;
 use rewish\craft\menu\services\DynamicSources;
 use rewish\craft\menu\web\assets\builder\BuilderAsset;
+use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 class NodesController extends Controller
 {
+    /** Keys in `data` owned by the dynamic node type. */
+    private const DYNAMIC_KEYS = ['source', 'limit', 'orderBy', 'section', 'group', 'volume', 'productType'];
+
     public function actionIndex(int $menuId): Response
     {
         $this->requirePermission('menu:access');
@@ -147,19 +153,29 @@ class NodesController extends Controller
             $node->elementId = is_numeric($elementId) ? (int) $elementId : null;
         }
 
+        // Start from the stored data so meta + dynamic keys survive; only touch what this type owns.
+        $data = $node->getDataArray();
+        foreach (self::DYNAMIC_KEYS as $key) {
+            if ($node->type !== Node::TYPE_DYNAMIC) {
+                unset($data[$key]);
+            }
+        }
+
         if ($node->type === Node::TYPE_SITE) {
             $linkedSiteId = $this->request->getBodyParam('linkedSiteId');
             $node->elementId = is_numeric($linkedSiteId) ? (int) $linkedSiteId : $node->elementId;
             $node->url = null;
-            $node->data = null;
         } elseif ($node->type === Node::TYPE_DYNAMIC) {
             $node->elementId = null;
             $node->url = null;
             $source = (string) $this->request->getBodyParam('dynamicSource', DynamicSources::SOURCE_ENTRY_SECTION);
-            $data = [
-                'source' => $source,
-                'limit' => (int) ($this->request->getBodyParam('dynamicLimit') ?: 50),
-            ];
+            $orderBy = (string) $this->request->getBodyParam('dynamicOrderBy', DynamicSources::ORDER_TITLE_ASC);
+            foreach (['section', 'group', 'volume', 'productType'] as $key) {
+                unset($data[$key]);
+            }
+            $data['source'] = $source;
+            $data['limit'] = (int) ($this->request->getBodyParam('dynamicLimit') ?: 50);
+            $data['orderBy'] = \in_array($orderBy, DynamicSources::ORDERS, true) ? $orderBy : DynamicSources::ORDER_TITLE_ASC;
             if ($source === DynamicSources::SOURCE_ENTRY_SECTION) {
                 $data['section'] = (string) $this->request->getBodyParam('dynamicSection', '');
             } elseif ($source === DynamicSources::SOURCE_CATEGORY_GROUP) {
@@ -169,18 +185,17 @@ class NodesController extends Controller
             } elseif ($source === DynamicSources::SOURCE_PRODUCT_TYPE) {
                 $data['productType'] = (string) $this->request->getBodyParam('dynamicProductType', '');
             }
-            $node->setDataArray($data);
-        } elseif ($node->type === Node::TYPE_PASSIVE) {
+        } elseif (\in_array($node->type, [Node::TYPE_PASSIVE, Node::TYPE_SEPARATOR], true)) {
             $node->elementId = null;
             $node->url = null;
-            $node->data = null;
-        } elseif ($node->type === Node::TYPE_CUSTOM) {
+        } elseif (\in_array($node->type, [Node::TYPE_CUSTOM, Node::TYPE_ANCHOR], true)) {
             $node->elementId = null;
-            $node->data = null;
         } else {
             $node->url = null;
-            $node->data = null;
         }
+
+        $node->setDataArray($data);
+        NodeMeta::set($node, NodeMeta::fromRequest($this->request->getBodyParams()));
 
         $node->classes = $this->request->getBodyParam('classes') ?: null;
         $node->urlSuffix = $this->request->getBodyParam('urlSuffix') ?: null;
@@ -232,6 +247,91 @@ class NodesController extends Controller
         return $this->asSuccess(\Craft::t('menu', 'Node deleted.'), redirect: 'menu/'.$menuId.'/nodes?siteId='.$siteId);
     }
 
+    public function actionDuplicateNode(): ?Response
+    {
+        $this->requirePostRequest();
+        $menuId = (int) $this->request->getRequiredBodyParam('menuId');
+        $siteId = (int) ($this->request->getBodyParam('siteId') ?: \Craft::$app->getSites()->getPrimarySite()->id);
+        $menu = Plugin::getInstance()->menus->getById($menuId);
+        if (!$menu) {
+            throw new NotFoundHttpException('Menu not found.');
+        }
+        $this->requireMenuManage($menu);
+
+        $nodeId = (int) $this->request->getRequiredBodyParam('nodeId');
+        $node = $this->findNode($nodeId, $menuId, $siteId);
+        if (!$node) {
+            throw new NotFoundHttpException('Node not found.');
+        }
+
+        $clone = Plugin::getInstance()->duplicators->duplicateNode($node);
+        if (!$clone) {
+            return $this->asFailure(\Craft::t('menu', 'Couldn’t duplicate node.'));
+        }
+
+        return $this->asSuccess(
+            \Craft::t('menu', 'Node duplicated.'),
+            redirect: UrlHelper::cpUrl('menu/'.$menuId.'/nodes', ['siteId' => $siteId, 'nodeId' => $clone->id])
+        );
+    }
+
+    public function actionBulk(): ?Response
+    {
+        $this->requirePostRequest();
+        $menuId = (int) $this->request->getRequiredBodyParam('menuId');
+        $siteId = (int) ($this->request->getBodyParam('siteId') ?: \Craft::$app->getSites()->getPrimarySite()->id);
+        $menu = Plugin::getInstance()->menus->getById($menuId);
+        if (!$menu) {
+            throw new NotFoundHttpException('Menu not found.');
+        }
+        $this->requireMenuManage($menu);
+
+        $action = (string) $this->request->getRequiredBodyParam('bulkAction');
+        if (!\in_array($action, ['enable', 'disable', 'delete'], true)) {
+            throw new BadRequestHttpException('Unknown bulk action.');
+        }
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', (array) $this->request->getBodyParam('nodeIds', [])),
+            static fn (int $id) => $id > 0
+        )));
+        if ($ids === []) {
+            return $this->asFailure(\Craft::t('menu', 'Select at least one node.'));
+        }
+
+        $elements = \Craft::$app->getElements();
+        $done = 0;
+        foreach ($ids as $id) {
+            // Re-fetch each time: deleting a parent can remove descendants that were also selected.
+            $node = $this->findNode($id, $menuId, $siteId);
+            if (!$node) {
+                continue;
+            }
+            if ($action === 'delete') {
+                $ok = $elements->deleteElement($node);
+            } else {
+                $node->enabled = $action === 'enable';
+                $ok = $elements->saveElement($node);
+            }
+            if ($ok) {
+                ++$done;
+            }
+        }
+
+        $message = match ($action) {
+            'enable' => \Craft::t('menu', '{count, plural, =1{1 node enabled.} other{# nodes enabled.}}', ['count' => $done]),
+            'disable' => \Craft::t('menu', '{count, plural, =1{1 node disabled.} other{# nodes disabled.}}', ['count' => $done]),
+            default => \Craft::t('menu', '{count, plural, =1{1 node deleted.} other{# nodes deleted.}}', ['count' => $done]),
+        };
+
+        return $this->asSuccess($message, redirect: 'menu/'.$menuId.'/nodes?siteId='.$siteId);
+    }
+
+    private function findNode(int $nodeId, int $menuId, int $siteId): ?Node
+    {
+        return Node::find()->id($nodeId)->menuId($menuId)->status(null)->siteId($siteId)->one()
+            ?? Node::find()->id($nodeId)->menuId($menuId)->status(null)->one();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -266,7 +366,7 @@ class NodesController extends Controller
             'siteId' => $siteId,
         ]);
 
-        $nodes = Plugin::getInstance()->nodes->getForMenu($menuId, $siteId);
+        $nodes = Plugin::getInstance()->nodes->getForMenu($menuId, $siteId, true);
         $parentOptions = [['label' => \Craft::t('menu', 'Top level'), 'value' => '']];
         foreach ($nodes as $node) {
             if ($editNode->id && ((int) $node->id === (int) $editNode->id || $this->isDescendant($editNode, $node))) {
@@ -310,6 +410,12 @@ class NodesController extends Controller
             'commerceInstalled' => Node::commerceInstalled(),
             'dynamicSources' => Plugin::getInstance()->dynamicSources->sourceOptions(),
             'dynamicData' => $editNode->getDataArray(),
+            'nodeMeta' => $editNode->getMeta(),
+            'visibilityRows' => $this->visibilityRows($editNode),
+            'visibilityTypes' => self::visibilityTypeOptions(),
+            'badgeStyles' => self::badgeStyleOptions(),
+            'orderOptions' => Plugin::getInstance()->dynamicSources->orderOptions(),
+            'health' => $this->healthByNode($nodes),
             'nodeFieldLayout' => $editNode->getFieldLayout(),
             'canEdit' => Plugin::getInstance()->menus->canManage($menu),
             'session' => $session,
@@ -338,6 +444,64 @@ class NodesController extends Controller
     }
 
     /**
+     * @return list<array{type: string, value: string}>
+     */
+    private function visibilityRows(Node $node): array
+    {
+        $rows = [];
+        foreach ($node->getMeta()['visibility'] as $rule) {
+            $rows[] = ['type' => (string) $rule['type'], 'value' => NodeMeta::visibilityValueToText($rule)];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<Node> $nodes
+     *
+     * @return array<int, array{status: string, message: string}>
+     */
+    private function healthByNode(array $nodes): array
+    {
+        $out = [];
+        foreach ($nodes as $node) {
+            $out[(int) $node->id] = Plugin::getInstance()->linkHealth->assess($node);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function visibilityTypeOptions(): array
+    {
+        return [
+            'always' => \Craft::t('menu', 'Always'),
+            'loggedIn' => \Craft::t('menu', 'Logged in'),
+            'loggedOut' => \Craft::t('menu', 'Logged out'),
+            'userGroup' => \Craft::t('menu', 'User group (ID or handle)'),
+            'site' => \Craft::t('menu', 'Site (ID)'),
+            'dateRange' => \Craft::t('menu', 'Date range (YYYY-MM-DD,YYYY-MM-DD)'),
+            'environment' => \Craft::t('menu', 'Environment (e.g. production)'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function badgeStyleOptions(): array
+    {
+        return [
+            'default' => \Craft::t('menu', 'Default'),
+            'info' => \Craft::t('menu', 'Info'),
+            'success' => \Craft::t('menu', 'Success'),
+            'warning' => \Craft::t('menu', 'Warning'),
+            'critical' => \Craft::t('menu', 'Critical'),
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     private static function typeOptions(): array
@@ -350,6 +514,8 @@ class NodesController extends Controller
             Node::TYPE_PASSIVE => \Craft::t('menu', 'Passive (label only)'),
             Node::TYPE_SITE => \Craft::t('menu', 'Site'),
             Node::TYPE_DYNAMIC => \Craft::t('menu', 'Dynamic'),
+            Node::TYPE_ANCHOR => \Craft::t('menu', 'Anchor'),
+            Node::TYPE_SEPARATOR => \Craft::t('menu', 'Separator'),
         ];
         if (Node::commerceInstalled()) {
             $types[Node::TYPE_PRODUCT] = \Craft::t('menu', 'Product');

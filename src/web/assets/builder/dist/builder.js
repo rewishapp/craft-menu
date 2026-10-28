@@ -33,7 +33,15 @@
     if (!host || !html) return;
     host.innerHTML = html;
     host.querySelectorAll('[data-menu-builder]').forEach(initBuilder);
+    applyToolbarState();
+    if (pendingFocusId) {
+      var handle = host.querySelector('[data-node-id="' + pendingFocusId + '"] [data-drag-handle]');
+      if (handle) handle.focus();
+      pendingFocusId = null;
+    }
   }
+
+  var pendingFocusId = null;
 
   function isDescendantRow(sourceRow, candidateRow) {
     if (!sourceRow || !candidateRow || sourceRow === candidateRow) return false;
@@ -104,6 +112,23 @@
       if (!handle) return;
 
       handle.setAttribute('draggable', 'true');
+
+      handle.addEventListener('keydown', function (e) {
+        if (busy || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+        var visible = rows().filter(function (r) {
+          return !r.hidden;
+        });
+        var index = visible.indexOf(row);
+        var neighbour = visible[index + (e.key === 'ArrowUp' ? -1 : 1)];
+        if (!neighbour || isDescendantRow(row, neighbour)) return;
+        e.preventDefault();
+        pendingFocusId = row.getAttribute('data-node-id');
+        moveNode(
+          row.getAttribute('data-node-id'),
+          e.key === 'ArrowUp' ? 'before' : 'after',
+          neighbour.getAttribute('data-node-id')
+        );
+      });
 
       handle.addEventListener('dragstart', function (e) {
         if (busy) {
@@ -297,7 +322,8 @@
 
     var sync = function () {
       document.querySelectorAll('[data-node-type-panel]').forEach(function (panel) {
-        var on = panel.getAttribute('data-node-type-panel') === select.value;
+        var types = (panel.getAttribute('data-node-type-panel') || '').split(/\s+/);
+        var on = types.indexOf(select.value) !== -1;
         panel.hidden = !on;
         panel.querySelectorAll('input, select, textarea').forEach(function (input) {
           // Keep Craft element-select chrome usable; only disable named fields when off.
@@ -392,6 +418,180 @@
     });
   }
 
+  function toolbarRoot() {
+    return document.querySelector('[data-menu-toolbar]');
+  }
+
+  function visibleRows() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-menu-builder] [data-node-id]')).filter(function (r) {
+      return !r.hidden;
+    });
+  }
+
+  function applyToolbarState() {
+    var toolbar = toolbarRoot();
+    if (!toolbar) return;
+
+    var input = toolbar.querySelector('[data-menu-search]');
+    var query = input ? input.value.trim().toLowerCase() : '';
+    var all = document.querySelectorAll('[data-menu-builder] [data-node-id]');
+    var shown = 0;
+
+    // Keep ancestors of matches visible so context isn't lost.
+    var rowsArr = Array.prototype.slice.call(all);
+    var keep = rowsArr.map(function (row) {
+      if (!query) return true;
+      return (row.getAttribute('data-search') || '').indexOf(query) !== -1;
+    });
+    if (query) {
+      rowsArr.forEach(function (row, i) {
+        if (!keep[i]) return;
+        var level = parseInt(row.getAttribute('data-level') || '1', 10);
+        for (var j = i - 1; j >= 0 && level > 1; j--) {
+          var lvl = parseInt(rowsArr[j].getAttribute('data-level') || '1', 10);
+          if (lvl < level) {
+            keep[j] = keep[j] || 'ancestor';
+            level = lvl;
+          }
+        }
+      });
+    }
+    rowsArr.forEach(function (row, i) {
+      row.hidden = !keep[i];
+      row.classList.toggle('is-context', keep[i] === 'ancestor');
+      if (keep[i]) shown++;
+    });
+
+    var count = toolbar.querySelector('[data-menu-count]');
+    if (count) {
+      count.textContent = query ? shown + ' / ' + rowsArr.length : String(rowsArr.length);
+    }
+    syncBulk();
+  }
+
+  function syncBulk() {
+    var toolbar = toolbarRoot();
+    if (!toolbar) return;
+    var checks = Array.prototype.slice.call(document.querySelectorAll('[data-bulk-check]'));
+    var selected = checks.filter(function (c) {
+      return c.checked;
+    });
+    toolbar.querySelectorAll('[data-bulk-action]').forEach(function (btn) {
+      btn.disabled = !selected.length;
+    });
+    var label = toolbar.querySelector('[data-bulk-selected]');
+    if (label) {
+      label.hidden = !selected.length;
+      label.textContent = selected.length ? selected.length + ' selected' : '';
+    }
+    var all = toolbar.querySelector('[data-bulk-all]');
+    if (all) {
+      var visibleChecks = checks.filter(function (c) {
+        var row = c.closest('[data-node-id]');
+        return row && !row.hidden;
+      });
+      var visibleSelected = visibleChecks.filter(function (c) {
+        return c.checked;
+      });
+      all.checked = visibleChecks.length > 0 && visibleSelected.length === visibleChecks.length;
+      all.indeterminate = visibleSelected.length > 0 && visibleSelected.length < visibleChecks.length;
+    }
+    document.querySelectorAll('[data-menu-builder] [data-node-id]').forEach(function (row) {
+      var check = row.querySelector('[data-bulk-check]');
+      row.classList.toggle('is-checked', !!(check && check.checked));
+    });
+  }
+
+  function initToolbar() {
+    var toolbar = toolbarRoot();
+    if (!toolbar || toolbar.dataset.ready) return;
+    toolbar.dataset.ready = '1';
+
+    var input = toolbar.querySelector('[data-menu-search]');
+    if (input) {
+      input.addEventListener('input', applyToolbarState);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && input.value) {
+          input.value = '';
+          applyToolbarState();
+        }
+      });
+    }
+
+    var all = toolbar.querySelector('[data-bulk-all]');
+    if (all) {
+      all.addEventListener('change', function () {
+        document.querySelectorAll('[data-bulk-check]').forEach(function (c) {
+          var row = c.closest('[data-node-id]');
+          if (row && !row.hidden) c.checked = all.checked;
+        });
+        syncBulk();
+      });
+    }
+
+    // Delegated: rows are replaced after every move.
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.matches && e.target.matches('[data-bulk-check]')) syncBulk();
+    });
+
+    toolbar.querySelectorAll('[data-bulk-action][data-confirm]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (!window.confirm(btn.getAttribute('data-confirm'))) e.preventDefault();
+      });
+    });
+
+    applyToolbarState();
+  }
+
+  function initVisibilityRules() {
+    document.querySelectorAll('[data-vis-rows]').forEach(function (rowsEl) {
+      if (rowsEl.dataset.ready) return;
+      rowsEl.dataset.ready = '1';
+      var group = rowsEl.closest('details') || document;
+      var addBtn = group.querySelector('[data-vis-add]');
+      var tpl = group.querySelector('[data-vis-template]');
+      var next = addBtn ? parseInt(addBtn.getAttribute('data-next-index') || '0', 10) : 0;
+
+      var syncValueState = function (row) {
+        var type = row.querySelector('[data-vis-type]');
+        var value = row.querySelector('[data-vis-value]');
+        if (!type || !value) return;
+        var needsValue = ['userGroup', 'site', 'dateRange', 'environment'].indexOf(type.value) !== -1;
+        value.disabled = !needsValue;
+        value.style.visibility = needsValue ? '' : 'hidden';
+        if (type.value === 'dateRange') value.placeholder = '2026-01-01,2026-03-31';
+        else if (type.value === 'environment') value.placeholder = 'production';
+        else value.placeholder = 'Value';
+      };
+
+      rowsEl.querySelectorAll('[data-vis-row]').forEach(syncValueState);
+
+      rowsEl.addEventListener('change', function (e) {
+        if (e.target.matches('[data-vis-type]')) syncValueState(e.target.closest('[data-vis-row]'));
+      });
+      rowsEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-vis-remove]');
+        if (!btn) return;
+        var row = btn.closest('[data-vis-row]');
+        if (row) row.remove();
+      });
+
+      if (addBtn && tpl) {
+        addBtn.addEventListener('click', function () {
+          var html = tpl.innerHTML.replace(/__INDEX__/g, String(next++));
+          var holder = document.createElement('div');
+          holder.innerHTML = html.trim();
+          var row = holder.firstElementChild;
+          if (!row) return;
+          rowsEl.appendChild(row);
+          syncValueState(row);
+          var sel = row.querySelector('select');
+          if (sel) sel.focus();
+        });
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-menu-builder]').forEach(initBuilder);
     initDiscard();
@@ -399,5 +599,7 @@
     initTypePanels();
     initCopyButtons();
     initSnippetTabs();
+    initToolbar();
+    initVisibilityRules();
   });
 })();

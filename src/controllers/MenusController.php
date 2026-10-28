@@ -8,6 +8,7 @@ use craft\web\Controller;
 use rewish\craft\menu\elements\Menu;
 use rewish\craft\menu\elements\Node;
 use rewish\craft\menu\Plugin;
+use rewish\craft\menu\web\assets\builder\BuilderAsset;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -20,10 +21,12 @@ class MenusController extends Controller
         $user = \Craft::$app->getUser()->getIdentity();
         $menus = Plugin::getInstance()->menus->getAll($user);
         $nodeCounts = [];
+        $health = [];
         foreach ($menus as $menu) {
             if (!$menu->id) {
                 continue;
             }
+            $health[(int) $menu->id] = Plugin::getInstance()->linkHealth->summary($menu);
             $nodeCounts[(int) $menu->id] = (int) Node::find()
                 ->menuId((int) $menu->id)
                 ->status(null)
@@ -31,9 +34,12 @@ class MenusController extends Controller
             ;
         }
 
+        $this->view->registerAssetBundle(BuilderAsset::class);
+
         return $this->renderTemplate('menu/menus/index', [
             'menus' => $menus,
             'nodeCounts' => $nodeCounts,
+            'health' => $health,
             'canCreate' => $user?->can('menu:editMenus') ?? false,
         ]);
     }
@@ -90,6 +96,14 @@ class MenusController extends Controller
         $handle = trim((string) $this->request->getBodyParam('handle'));
         $menu->handle = $handle !== '' ? $handle : StringHelper::toHandle($menu->title);
         $menu->instructions = $this->request->getBodyParam('instructions') ?: null;
+        $cssClass = trim((string) $this->request->getBodyParam('cssClass', ''));
+        $menu->cssClass = $cssClass !== '' ? $cssClass : null;
+        $htmlAttributes = trim((string) $this->request->getBodyParam('htmlAttributes', ''));
+        $menu->htmlAttributes = $htmlAttributes !== '' ? $htmlAttributes : null;
+        $enabled = $this->request->getBodyParam('enabled');
+        if ($enabled !== null) {
+            $menu->enabled = (bool) $enabled;
+        }
         $maxLevels = $this->request->getBodyParam('maxLevels');
         $menu->maxLevels = is_numeric($maxLevels) ? (int) $maxLevels : Plugin::settings()->defaultMaxLevels;
 
@@ -119,6 +133,24 @@ class MenusController extends Controller
         return $this->asSuccess(\Craft::t('menu', 'Menu saved.'), [
             'menu' => $menu,
         ], 'menu/'.$menu->id.'/nodes');
+    }
+
+    public function actionDuplicate(): ?Response
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('menu:editMenus');
+        $id = (int) $this->request->getRequiredBodyParam('menuId');
+        $menu = Plugin::getInstance()->menus->getById($id);
+        if (!$menu) {
+            throw new NotFoundHttpException('Menu not found.');
+        }
+
+        $copy = Plugin::getInstance()->duplicators->duplicateMenu($menu);
+        if (!$copy) {
+            return $this->asFailure(\Craft::t('menu', 'Couldn’t duplicate menu.'));
+        }
+
+        return $this->asSuccess(\Craft::t('menu', 'Menu duplicated.'), ['menu' => $copy], 'menu/'.$copy->id.'/nodes');
     }
 
     public function actionDelete(): ?Response

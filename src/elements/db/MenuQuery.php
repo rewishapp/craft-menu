@@ -30,6 +30,8 @@ class MenuQuery extends ElementQuery
             'menu_menus.maxLevels',
             'menu_menus.sortOrder',
             'menu_menus.nodeFieldLayoutId',
+            'menu_menus.cssClass',
+            'menu_menus.htmlAttributes',
         ]);
 
         if ($this->handle) {

@@ -11,9 +11,13 @@ class Menus extends Component
     /**
      * @return list<Menu>
      */
-    public function getAll(?User $user = null): array
+    public function getAll(?User $user = null, bool $enabledOnly = false): array
     {
-        $menus = Menu::find()->orderBy(['sortOrder' => \SORT_ASC, 'title' => \SORT_ASC])->all();
+        $query = Menu::find()->orderBy(['sortOrder' => \SORT_ASC, 'title' => \SORT_ASC]);
+        if (!$enabledOnly) {
+            $query->status(null);
+        }
+        $menus = $query->all();
         if ($user === null) {
             return $menus;
         }
@@ -24,9 +28,17 @@ class Menus extends Component
         ));
     }
 
-    public function getByHandle(string $handle): ?Menu
+    /**
+     * @param bool $anyStatus include disabled menus (CP / import); front-end callers leave this off
+     */
+    public function getByHandle(string $handle, bool $anyStatus = false): ?Menu
     {
-        return Menu::find()->handle($handle)->one();
+        $query = Menu::find()->handle($handle);
+        if ($anyStatus) {
+            $query->status(null);
+        }
+
+        return $query->one();
     }
 
     public function getById(int $id): ?Menu

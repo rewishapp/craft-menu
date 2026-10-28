@@ -44,6 +44,28 @@
           </div>
         {% endif %}
       </div>
+      {% if nodes|length %}
+        <div class="menu-toolbar" data-menu-toolbar>
+          <label class="menu-toolbar__search">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M7 1.5a5.5 5.5 0 0 1 4.4 8.8l3.15 3.15a.75.75 0 1 1-1.06 1.06L10.34 11.4A5.5 5.5 0 1 1 7 1.5Zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+            <input type="search" data-menu-search placeholder="{{ "Filter nodes…"|t('menu') }}" aria-label="{{ "Filter nodes"|t('menu') }}" autocomplete="off">
+          </label>
+          <span class="menu-toolbar__count" data-menu-count aria-live="polite"></span>
+          {% if canEdit %}
+            <div class="menu-toolbar__bulk" data-bulk-toolbar>
+              <label class="menu-toolbar__all">
+                <input type="checkbox" data-bulk-all aria-label="{{ "Select all visible nodes"|t('menu') }}">
+                <span>{{ "Select all"|t('menu') }}</span>
+              </label>
+              <span class="menu-toolbar__selected" data-bulk-selected hidden></span>
+              <button type="submit" class="btn small" form="menu-bulk-form" name="bulkAction" value="enable" data-bulk-action disabled>{{ "Enable"|t('app') }}</button>
+              <button type="submit" class="btn small" form="menu-bulk-form" name="bulkAction" value="disable" data-bulk-action disabled>{{ "Disable"|t('app') }}</button>
+              <button type="submit" class="btn small caution" form="menu-bulk-form" name="bulkAction" value="delete" data-bulk-action data-confirm="{{ "Delete the selected nodes?"|t('menu') }}" disabled>{{ "Delete"|t('app') }}</button>
+            </div>
+          {% endif %}
+          <a class="btn small" href="{{ url('menu/' ~ menu.id ~ '/preview', { siteId: siteId }) }}">{{ "Preview"|t('menu') }}</a>
+        </div>
+      {% endif %}
       <div class="menu-cp__pane-body">
         <div data-menu-builder-host>
           {% include "menu/nodes/_list" %}
@@ -102,8 +124,9 @@
               </select>
             </div>
 
-            <div class="menu-editor__section">
-              <p class="menu-editor__section-title">{{ "Link target"|t('menu') }}</p>
+            <details class="menu-editor__group" open>
+              <summary>{{ "Link"|t('menu') }}</summary>
+              <div class="menu-editor__group-body">
 
               <div class="menu-editor__panel" data-node-type-panel="custom" {% if editNode.type != 'custom' %}hidden{% endif %}>
                 {{ forms.textField({
@@ -173,6 +196,21 @@
                 }) }}
               </div>
 
+              <div class="menu-editor__panel" data-node-type-panel="anchor" {% if editNode.type != 'anchor' %}hidden{% endif %}>
+                {{ forms.textField({
+                  label: "Anchor"|t('menu'),
+                  instructions: "In-page target, without the #. Example: pricing"|t('menu'),
+                  name: 'url',
+                  id: 'anchor-url',
+                  value: editNode.type == 'anchor' ? editNode.url : '',
+                  placeholder: 'pricing',
+                }) }}
+              </div>
+
+              <div class="menu-editor__panel" data-node-type-panel="separator" {% if editNode.type != 'separator' %}hidden{% endif %}>
+                <p class="menu-editor__note">{{ "Separators render as a divider — no link, no URL."|t('menu') }}</p>
+              </div>
+
               <div class="menu-editor__panel" data-node-type-panel="passive" {% if editNode.type != 'passive' %}hidden{% endif %}>
                 <p class="menu-editor__note">{{ "Passive nodes are labels only — no URL."|t('menu') }}</p>
               </div>
@@ -235,6 +273,12 @@
                     }) }}
                   </div>
                 {% endif %}
+                {{ forms.selectField({
+                  label: "Order"|t('menu'),
+                  name: 'dynamicOrderBy',
+                  value: dynamicData.orderBy ?? 'titleAsc',
+                  options: orderOptions,
+                }) }}
                 {{ forms.textField({
                   label: "Limit"|t('app'),
                   name: 'dynamicLimit',
@@ -245,7 +289,44 @@
                 }) }}
                 <p class="menu-editor__note">{{ "Projected children appear in Twig/GraphQL trees, not as editable nodes."|t('menu') }}</p>
               </div>
-            </div>
+
+                <div class="menu-editor__panel" data-node-type-panel="entry category asset product site" {% if editNode.type not in ['entry', 'category', 'asset', 'product', 'site'] %}hidden{% endif %}>
+                  {{ forms.selectField({
+                    label: "If the linked element is missing"|t('menu'),
+                    instructions: "Hide the node, keep it as a plain label, or send visitors to a fallback URL."|t('menu'),
+                    id: 'meta-fallback',
+                    name: 'meta[fallback]',
+                    value: nodeMeta.fallback,
+                    options: {
+                      unlink: "Keep as plain label"|t('menu'),
+                      hide: "Hide the node"|t('menu'),
+                      url: "Use fallback URL"|t('menu'),
+                    },
+                  }) }}
+                  {{ forms.textField({
+                    label: "Fallback URL"|t('menu'),
+                    id: 'meta-fallbackUrl',
+                    name: 'meta[fallbackUrl]',
+                    value: nodeMeta.fallbackUrl,
+                    placeholder: '/',
+                  }) }}
+                </div>
+
+                {{ forms.textField({
+                  label: "Rel"|t('menu'),
+                  instructions: "Optional, e.g. nofollow. noopener is added for new windows."|t('menu'),
+                  id: 'meta-rel',
+                  name: 'meta[rel]',
+                  value: nodeMeta.rel,
+                }) }}
+                {{ forms.lightswitchField({
+                  label: "Clickable"|t('menu'),
+                  instructions: "Turn off to render the label without a link (e.g. a dropdown heading)."|t('menu'),
+                  name: 'meta[clickable]',
+                  on: nodeMeta.clickable,
+                }) }}
+              </div>
+            </details>
 
             <div class="menu-editor__section">
               <p class="menu-editor__section-title">{{ "Options"|t('menu') }}</p>
@@ -266,14 +347,149 @@
               }) }}
             </div>
 
-            <div class="menu-editor__section">
-              <details class="menu-editor__advanced">
-                <summary>{{ "Advanced"|t('menu') }}</summary>
+            <details class="menu-editor__group">
+              <summary>{{ "Appearance"|t('menu') }}</summary>
+              <div class="menu-editor__group-body">
+                {{ forms.textField({
+                  label: "Icon class"|t('menu'),
+                  instructions: "CSS class for an icon element, e.g. fa-solid fa-house."|t('menu'),
+                  id: 'meta-iconClass',
+                  name: 'meta[iconClass]',
+                  value: nodeMeta.iconClass,
+                }) }}
+                {{ forms.textField({
+                  label: "Badge text"|t('menu'),
+                  id: 'meta-badgeText',
+                  name: 'meta[badgeText]',
+                  value: nodeMeta.badgeText,
+                }) }}
+                {{ forms.selectField({
+                  label: "Badge style"|t('menu'),
+                  id: 'meta-badgeStyle',
+                  name: 'meta[badgeStyle]',
+                  value: nodeMeta.badgeStyle,
+                  options: badgeStyles,
+                }) }}
+                {{ forms.textareaField({
+                  label: "Description"|t('menu'),
+                  instructions: "Short helper text shown under the label."|t('menu'),
+                  id: 'meta-description',
+                  name: 'meta[description]',
+                  value: nodeMeta.description,
+                  rows: 2,
+                }) }}
+                {{ forms.lightswitchField({
+                  label: "Featured"|t('menu'),
+                  name: 'meta[featured]',
+                  on: nodeMeta.featured,
+                }) }}
+                {{ forms.textField({
+                  label: "HTML ID"|t('menu'),
+                  id: 'meta-htmlId',
+                  name: 'meta[htmlId]',
+                  value: nodeMeta.htmlId,
+                }) }}
                 {{ forms.textField({
                   label: "CSS classes"|t('menu'),
                   name: 'classes',
                   value: editNode.classes,
                 }) }}
+              </div>
+            </details>
+
+            <details class="menu-editor__group">
+              <summary>{{ "Accessibility"|t('menu') }}</summary>
+              <div class="menu-editor__group-body">
+                {{ forms.textField({
+                  label: "ARIA label"|t('menu'),
+                  instructions: "Overrides the visible label for screen readers."|t('menu'),
+                  id: 'meta-ariaLabel',
+                  name: 'meta[ariaLabel]',
+                  value: nodeMeta.ariaLabel,
+                }) }}
+                {{ forms.textField({
+                  label: "Title attribute"|t('menu'),
+                  id: 'meta-titleAttr',
+                  name: 'meta[titleAttr]',
+                  value: nodeMeta.titleAttr,
+                }) }}
+              </div>
+            </details>
+
+            <details class="menu-editor__group"{% if visibilityRows|length %} open{% endif %}>
+              <summary>{{ "Visibility"|t('menu') }}{% if visibilityRows|length %} <span class="menu-editor__count">{{ visibilityRows|length }}</span>{% endif %}</summary>
+              <div class="menu-editor__group-body">
+                <p class="menu-editor__note">{{ "The node shows only when every rule passes. Hidden nodes hide their children too. Leave empty to always show."|t('menu') }}</p>
+                {{ hiddenInput('meta[visibilitySubmitted]', '1') }}
+                <div class="menu-vis" data-vis-rows>
+                  {% for row in visibilityRows %}
+                    {% include 'menu/nodes/_visibility-row' with { row: row, index: loop.index0, visibilityTypes: visibilityTypes } only %}
+                  {% endfor %}
+                </div>
+                <template data-vis-template>
+                  {% include 'menu/nodes/_visibility-row' with { row: { type: 'loggedIn', value: '' }, index: '__INDEX__', visibilityTypes: visibilityTypes } only %}
+                </template>
+                <button type="button" class="btn small add icon" data-vis-add data-next-index="{{ visibilityRows|length }}">{{ "Add rule"|t('menu') }}</button>
+              </div>
+            </details>
+
+            <details class="menu-editor__group">
+              <summary>{{ "Mega menu"|t('menu') }}</summary>
+              <div class="menu-editor__group-body">
+                {{ forms.lightswitchField({
+                  label: "Render children as a mega panel"|t('menu'),
+                  name: 'meta[megaEnabled]',
+                  on: nodeMeta.megaEnabled,
+                }) }}
+                {{ forms.textField({
+                  label: "Columns"|t('menu'),
+                  instructions: "1–6 columns in this node's panel."|t('menu'),
+                  id: 'meta-megaColumns',
+                  name: 'meta[megaColumns]',
+                  type: 'number',
+                  min: 1,
+                  max: 6,
+                  value: nodeMeta.megaColumns,
+                }) }}
+                {{ forms.textField({
+                  label: "Column in parent panel"|t('menu'),
+                  instructions: "Which column this node sits in when its parent is a mega panel."|t('menu'),
+                  id: 'meta-megaColumn',
+                  name: 'meta[megaColumn]',
+                  type: 'number',
+                  min: 1,
+                  max: 6,
+                  value: nodeMeta.megaColumn,
+                }) }}
+              </div>
+            </details>
+
+            <details class="menu-editor__group">
+              <summary>{{ "Mobile"|t('menu') }}</summary>
+              <div class="menu-editor__group-body">
+                {{ forms.lightswitchField({
+                  label: "Hide on mobile"|t('menu'),
+                  name: 'meta[mobileHidden]',
+                  on: nodeMeta.mobileHidden,
+                }) }}
+                {{ forms.textField({
+                  label: "Mobile order"|t('menu'),
+                  id: 'meta-mobileOrder',
+                  name: 'meta[mobileOrder]',
+                  type: 'number',
+                  value: nodeMeta.mobileOrder,
+                }) }}
+                {{ forms.lightswitchField({
+                  label: "Collapsible on mobile"|t('menu'),
+                  name: 'meta[mobileCollapsible]',
+                  on: nodeMeta.mobileCollapsible,
+                }) }}
+              </div>
+            </details>
+
+            <details class="menu-editor__group">
+              <summary>{{ "Advanced"|t('menu') }}</summary>
+              <div class="menu-editor__group-body">
                 {{ forms.textField({
                   label: "URL suffix"|t('menu'),
                   name: 'urlSuffix',
@@ -286,8 +502,8 @@
                   value: editNode.customAttributesArray ? editNode.customAttributesArray|json_encode : '',
                   rows: 3,
                 }) }}
-              </details>
-            </div>
+              </div>
+            </details>
 
             {% if nodeFieldLayout %}
               <div class="menu-editor__section">

@@ -40,8 +40,13 @@ Enable the Menu fields on your schema, then query:
 }
 ```
 
+## More fields
+
+Nodes also expose `htmlId`, `ariaLabel`, `titleAttr`, `badgeText`, `badgeStyle`, `iconClass`, `description`, `rel`, `featured`, `megaEnabled`, `megaColumns`, `clickable`, `separator`, and `activeAncestor(uri:)`. Menus expose `cssClass`, `htmlAttributes`, and `enabled`.
+
 ## Notes
 
+- `menuNodes` respects menu enabled state and node visibility rules; hidden nodes and their children are omitted.
 - `menuNodes` returns structure order. Pass `level: 1` for roots; use `children` for nesting.
 - Dynamic sources inject **projected** children into `children` (`projected: true`). Those are not stored Node elements.
 - `active` / `current` take an optional `uri` argument (defaults to the current request when available).

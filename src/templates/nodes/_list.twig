@@ -2,6 +2,7 @@
   <p class="menu-builder__hint">
     <svg class="menu-builder__hint-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM7.25 5a.75.75 0 0 1 1.5 0v3.5a.75.75 0 0 1-1.5 0V5Zm.75 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>
     <span>{{ "Drag the handle to reorder. Drop on the top or bottom edge to place before/after, or in the middle to nest."|t('menu') }}</span>
+    <span>{{ "With a handle focused, press ↑ / ↓ to move it."|t('menu') }}</span>
   </p>
 {% endif %}
 
@@ -11,6 +12,14 @@
     <p class="menu-builder__empty-copy">{{ "Add your first link with the form on the right."|t('menu') }}</p>
   </div>
 {% else %}
+  {% if canEdit %}
+    <form id="menu-bulk-form" method="post" class="menu-builder__bulk-form" hidden>
+      {{ csrfInput() }}
+      {{ actionInput('menu/nodes/bulk') }}
+      {{ hiddenInput('menuId', menu.id) }}
+      {{ hiddenInput('siteId', siteId) }}
+    </form>
+  {% endif %}
   <ul
     class="menu-builder"
     data-menu-builder
@@ -28,15 +37,28 @@
       passive: 'Passive'|t('menu'),
       site: 'Site'|t('menu'),
       dynamic: 'Dynamic'|t('menu'),
+      anchor: 'Anchor'|t('menu'),
+      separator: 'Separator'|t('menu'),
     } %}
     {% for node in nodes %}
       {% set isSelected = editNode.id is defined and editNode.id and editNode.id == node.id %}
+      {% set nodeUrl = node.nodeUrl %}
+      {% set nodeHealth = health[node.id] ?? null %}
       <li
-        class="menu-builder__row{% if isSelected %} is-selected{% endif %}{% if not node.enabled %} is-disabled-node{% endif %}"
+        class="menu-builder__row{% if isSelected %} is-selected{% endif %}{% if not node.enabled %} is-disabled-node{% endif %}{% if node.type == 'separator' %} is-separator{% endif %}"
         data-node-id="{{ node.id }}"
         data-level="{{ node.level }}"
+        data-search="{{ (node.title ~ ' ' ~ (nodeUrl ?? ''))|lower }}"
         style="--indent: {{ node.levelIndent }};"
       >
+        <span class="menu-builder__rails" aria-hidden="true"></span>
+        {% if canEdit %}
+          <label class="menu-builder__check" title="{{ "Select"|t('menu') }}">
+            <input type="checkbox" name="nodeIds[]" value="{{ node.id }}" form="menu-bulk-form" data-bulk-check aria-label="{{ "Select {title}"|t('menu', { title: node.title }) }}">
+          </label>
+        {% else %}
+          <span></span>
+        {% endif %}
         {% if canEdit %}
           <span class="menu-builder__handle" data-drag-handle title="{{ "Drag to reorder"|t('menu') }}" tabindex="0" aria-label="{{ "Drag to reorder"|t('menu') }}">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5 3.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm6.5-9a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm0 4.5a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/></svg>
@@ -47,15 +69,55 @@
 
         <div class="menu-builder__main">
           <div class="menu-builder__title">
-            <a href="{{ url('menu/' ~ menu.id ~ '/nodes', { nodeId: node.id, siteId: siteId }) }}">{{ node.title }}</a>
+            <a href="{{ url('menu/' ~ menu.id ~ '/nodes', { nodeId: node.id, siteId: siteId }) }}">{% if node.type == 'separator' %}<span class="menu-builder__sep-line">{{ node.title ?: "Separator"|t('menu') }}</span>{% else %}{{ node.title }}{% endif %}</a>
+            {% if not node.enabled %}<span class="menu-builder__flag">{{ "Off"|t('menu') }}</span>{% endif %}
+            {% if node.getMeta().badgeText %}<span class="menu-builder__flag menu-builder__flag--badge">{{ node.getMeta().badgeText }}</span>{% endif %}
           </div>
-          <div class="menu-builder__url" title="{{ node.nodeUrl ?? '' }}">{{ node.nodeUrl ?? '—' }}</div>
+          {% if node.type != 'separator' %}
+            <div class="menu-builder__url" title="{{ nodeUrl ?? '' }}">{{ nodeUrl ?? '—' }}</div>
+          {% endif %}
         </div>
 
-        <span class="menu-builder__badge" data-type="{{ node.type }}" title="{{ types[node.type] ?? node.type }}">{{ badgeLabels[node.type] ?? (types[node.type] ?? node.type) }}</span>
+        <div class="menu-builder__meta">
+          {% if nodeHealth and (nodeUrl or nodeHealth.status != 'ok') %}
+            <span
+              class="menu-builder__health"
+              data-status="{{ nodeHealth.status }}"
+              title="{{ nodeHealth.message ?: "Link looks fine"|t('menu') }}"
+              aria-label="{{ nodeHealth.message ?: "Link looks fine"|t('menu') }}"
+            ></span>
+          {% endif %}
+          {% if nodeUrl and node.type != 'anchor' %}
+            <a
+              class="menu-builder__visit"
+              href="{{ nodeUrl }}"
+              {% if nodeUrl starts with 'http' %}target="_blank" rel="noopener noreferrer"{% endif %}
+              title="{{ "Visit link"|t('menu') }}"
+              aria-label="{{ "Visit link"|t('menu') }}"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm4.9 6H10.7a10.9 10.9 0 0 0-.8-3.7 5.5 5.5 0 0 1 3 3.7ZM8 2.6c.5.6 1.4 2.2 1.7 4.9H6.3C6.6 4.8 7.5 3.2 8 2.6ZM6.1 3.8a10.9 10.9 0 0 0-.8 3.7H3.1a5.5 5.5 0 0 1 3-3.7ZM3.1 8.5h2.2c.1 1.4.4 2.7.8 3.7a5.5 5.5 0 0 1-3-3.7Zm3.2 0h3.4c-.3 2.7-1.2 4.3-1.7 4.9-.5-.6-1.4-2.2-1.7-4.9Zm3.6 3.7c.4-1 .7-2.3.8-3.7h2.2a5.5 5.5 0 0 1-3 3.7Z"/></svg>
+            </a>
+          {% endif %}
+          <span class="menu-builder__badge" data-type="{{ node.type }}" title="{{ types[node.type] ?? node.type }}">{{ badgeLabels[node.type] ?? (types[node.type] ?? node.type) }}</span>
+        </div>
 
         {% if canEdit %}
           <div class="menu-builder__actions">
+            <form method="post">
+              {{ csrfInput() }}
+              {{ actionInput('menu/nodes/duplicate-node') }}
+              {{ hiddenInput('menuId', menu.id) }}
+              {{ hiddenInput('siteId', siteId) }}
+              {{ hiddenInput('nodeId', node.id) }}
+              <button
+                class="menu-builder__icon-btn menu-builder__icon-btn--neutral"
+                type="submit"
+                title="{{ "Duplicate"|t('menu') }}"
+                aria-label="{{ "Duplicate"|t('menu') }}"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5.5 1.5h6A1.5 1.5 0 0 1 13 3v7a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 4 10V3a1.5 1.5 0 0 1 1.5-1.5Zm0 1a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V3a.5.5 0 0 0-.5-.5h-6ZM2 5.5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 .5.5h6a.5.5 0 0 1 0 1h-6A1.5 1.5 0 0 1 2 12.5v-7Z"/></svg>
+              </button>
+            </form>
             <form method="post">
               {{ csrfInput() }}
               {{ actionInput('menu/nodes/delete') }}

@@ -1,6 +1,7 @@
 {% set handle = menu.handle %}
 {% set treeCode = "craft.menu.tree('" ~ handle ~ "')" %}
 {% set activeCode = "craft.menu.activeTree('" ~ handle ~ "')" %}
+{% set renderCode = "{{ craft.menu.render('" ~ handle ~ "', { ariaLabel: '" ~ menu.title|e('js') ~ "' }) }}" %}
 {% set crumbsCode = "craft.menu.breadcrumbs('" ~ handle ~ "')" %}
 {% set exampleCode = "{% set tree = craft.menu.activeTree('" ~ handle ~ "') %}\n<ul>\n  {% for item in tree %}\n    <li class=\"{{ item.active ? 'is-active' }}{{ item.current ? ' is-current' }}\">\n      {% if item.node.nodeUrl %}\n        <a href=\"{{ item.node.nodeUrl }}\">{{ item.node.title }}</a>\n      {% else %}\n        <span>{{ item.node.title }}</span>\n      {% endif %}\n    </li>\n  {% endfor %}\n</ul>" %}
 {% set gqlCode = "{\n  menu(handle: \"" ~ handle ~ "\") { id title handle }\n  menuNodes(handle: \"" ~ handle ~ "\", level: 1) {\n    id title url\n    active(uri: \"about\") current(uri: \"about\")\n    children { id title url }\n  }\n  menuBreadcrumbs(handle: \"" ~ handle ~ "\", uri: \"about\") {\n    id title url\n  }\n}" %}
@@ -38,6 +39,14 @@
           </div>
           <code class="menu-snippets__code">{{ activeCode }}</code>
           <button type="button" class="menu-snippets__copy" data-copy="{{ activeCode|e('html_attr') }}">{{ "Copy"|t('app') }}</button>
+        </div>
+        <div class="menu-snippets__row">
+          <div class="menu-snippets__meta">
+            <span class="menu-snippets__label">{{ "Render"|t('menu') }}</span>
+            <span class="menu-snippets__hint">{{ "Accessible nav markup"|t('menu') }}</span>
+          </div>
+          <code class="menu-snippets__code">{{ renderCode }}</code>
+          <button type="button" class="menu-snippets__copy" data-copy="{{ renderCode|e('html_attr') }}">{{ "Copy"|t('app') }}</button>
         </div>
         <div class="menu-snippets__row">
           <div class="menu-snippets__meta">

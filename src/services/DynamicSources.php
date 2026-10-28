@@ -20,6 +20,51 @@ class DynamicSources extends Component
 
     public const SOURCE_PRODUCT_TYPE = 'productType';
 
+    public const ORDER_TITLE_ASC = 'titleAsc';
+
+    public const ORDER_TITLE_DESC = 'titleDesc';
+
+    public const ORDER_DATE_DESC = 'dateDesc';
+
+    public const ORDER_DATE_ASC = 'dateAsc';
+
+    public const ORDERS = [
+        self::ORDER_TITLE_ASC,
+        self::ORDER_TITLE_DESC,
+        self::ORDER_DATE_DESC,
+        self::ORDER_DATE_ASC,
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    public function orderOptions(): array
+    {
+        return [
+            self::ORDER_TITLE_ASC => \Craft::t('menu', 'Title (A–Z)'),
+            self::ORDER_TITLE_DESC => \Craft::t('menu', 'Title (Z–A)'),
+            self::ORDER_DATE_DESC => \Craft::t('menu', 'Newest first'),
+            self::ORDER_DATE_ASC => \Craft::t('menu', 'Oldest first'),
+        ];
+    }
+
+    /**
+     * Translate an `orderBy` setting into a Craft `orderBy` array.
+     *
+     * @param string $dateColumn column used for the date orders (`postDate` for entries/products)
+     *
+     * @return array<string, int>
+     */
+    public static function orderByClause(?string $orderBy, string $dateColumn = 'dateCreated'): array
+    {
+        return match ($orderBy) {
+            self::ORDER_TITLE_DESC => ['title' => \SORT_DESC],
+            self::ORDER_DATE_DESC => [$dateColumn => \SORT_DESC],
+            self::ORDER_DATE_ASC => [$dateColumn => \SORT_ASC],
+            default => ['title' => \SORT_ASC],
+        };
+    }
+
     /**
      * @return array<string, string>
      */
@@ -77,7 +122,7 @@ class DynamicSources extends Component
             ->siteId($siteId)
             ->status(null)
             ->limit($limit)
-            ->orderBy(['title' => \SORT_ASC])
+            ->orderBy(self::orderByClause($data['orderBy'] ?? null, 'postDate'))
         ;
 
         $out = [];
@@ -110,7 +155,7 @@ class DynamicSources extends Component
             ->siteId($siteId)
             ->status(null)
             ->limit($limit)
-            ->orderBy(['title' => \SORT_ASC])
+            ->orderBy(self::orderByClause($data['orderBy'] ?? null))
         ;
 
         $out = [];
@@ -143,7 +188,7 @@ class DynamicSources extends Component
             ->siteId($siteId)
             ->status(null)
             ->limit($limit)
-            ->orderBy(['title' => \SORT_ASC])
+            ->orderBy(self::orderByClause($data['orderBy'] ?? null))
         ;
 
         $out = [];
@@ -181,7 +226,7 @@ class DynamicSources extends Component
             ->siteId($siteId)
             ->status(null)
             ->limit($limit)
-            ->orderBy(['title' => \SORT_ASC])
+            ->orderBy(self::orderByClause($data['orderBy'] ?? null, 'postDate'))
         ;
 
         $out = [];

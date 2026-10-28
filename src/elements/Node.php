@@ -12,7 +12,9 @@ use craft\helpers\Json;
 use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
 use rewish\craft\menu\elements\db\NodeQuery;
+use rewish\craft\menu\helpers\NodeMeta;
 use rewish\craft\menu\records\NodeRecord;
+use rewish\craft\menu\services\Nodes;
 
 class Node extends Element
 {
@@ -36,6 +38,27 @@ class Node extends Element
     /** Craft Commerce product link (requires craftcms/commerce). */
     public const TYPE_PRODUCT = 'product';
 
+    /** In-page anchor; `url` holds the fragment (without `#`). */
+    public const TYPE_ANCHOR = 'anchor';
+
+    /** Visual divider (no label link, no URL). */
+    public const TYPE_SEPARATOR = 'separator';
+
+    /** Types that link to a Craft element via `elementId`. */
+    public const ELEMENT_TYPES = [
+        self::TYPE_ENTRY,
+        self::TYPE_CATEGORY,
+        self::TYPE_ASSET,
+        self::TYPE_PRODUCT,
+    ];
+
+    /** Types that never have a URL. */
+    public const URLLESS_TYPES = [
+        self::TYPE_PASSIVE,
+        self::TYPE_DYNAMIC,
+        self::TYPE_SEPARATOR,
+    ];
+
     public const TYPES = [
         self::TYPE_CUSTOM,
         self::TYPE_ENTRY,
@@ -45,6 +68,8 @@ class Node extends Element
         self::TYPE_SITE,
         self::TYPE_DYNAMIC,
         self::TYPE_PRODUCT,
+        self::TYPE_ANCHOR,
+        self::TYPE_SEPARATOR,
     ];
 
     public ?int $menuId = null;
@@ -72,6 +97,9 @@ class Node extends Element
     public ?int $newParentId = null;
 
     private ?ElementInterface $_linkedElement = null;
+
+    /** @var null|list<object> filtered children attached by {@see Nodes::attachTreeChildren()} */
+    private ?array $_treeChildren = null;
 
     public static function displayName(): string
     {
@@ -164,11 +192,24 @@ class Node extends Element
         $this->data = $data === [] ? null : Json::encode($data);
     }
 
+    /**
+     * @return array<string, mixed> merged node meta (defaults applied)
+     */
+    public function getMeta(): array
+    {
+        return NodeMeta::fromData($this->getDataArray());
+    }
+
     public function getNodeUrl(): ?string
     {
         $suffix = $this->urlSuffix ?? '';
-        if ($this->type === self::TYPE_PASSIVE || $this->type === self::TYPE_DYNAMIC) {
+        if (\in_array($this->type, self::URLLESS_TYPES, true)) {
             return null;
+        }
+        if ($this->type === self::TYPE_ANCHOR) {
+            $fragment = ltrim(trim((string) $this->url), '#');
+
+            return '#'.$fragment;
         }
         if ($this->type === self::TYPE_CUSTOM) {
             return ($this->url ?? '').$suffix;
@@ -180,14 +221,25 @@ class Node extends Element
         }
 
         $element = $this->getLinkedElement();
+        $url = null;
         if ($element instanceof ElementInterface) {
             try {
                 $url = $element->getUrl();
             } catch (\Throwable) {
                 $url = null;
             }
+        }
+        if ($url) {
+            return $url.$suffix;
+        }
 
-            return $url ? $url.$suffix : null;
+        // Linked element is missing, disabled, or has no URL → apply the fallback strategy.
+        $meta = $this->getMeta();
+        if ($meta['fallback'] === NodeMeta::FALLBACK_URL && $meta['fallbackUrl']) {
+            return $meta['fallbackUrl'];
+        }
+        if ($meta['fallback'] === NodeMeta::FALLBACK_URL || $meta['fallback'] === NodeMeta::FALLBACK_HIDE) {
+            return null;
         }
 
         return $this->url ? $this->url.$suffix : null;
@@ -195,7 +247,73 @@ class Node extends Element
 
     public function hasUrl(): bool
     {
-        return !\in_array($this->type, [self::TYPE_PASSIVE, self::TYPE_DYNAMIC], true);
+        return !\in_array($this->type, self::URLLESS_TYPES, true);
+    }
+
+    public function isSeparator(): bool
+    {
+        return $this->type === self::TYPE_SEPARATOR;
+    }
+
+    /**
+     * Whether the node should render as a link (has a URL and `clickable` isn't turned off).
+     */
+    public function isClickable(): bool
+    {
+        return $this->getMeta()['clickable'] && $this->getNodeUrl() !== null && $this->getNodeUrl() !== '';
+    }
+
+    /**
+     * False when the node's linked element is gone and the node is set to hide in that case.
+     */
+    public function isAvailable(): bool
+    {
+        if (!\in_array($this->type, self::ELEMENT_TYPES, true)) {
+            return true;
+        }
+        if ($this->getMeta()['fallback'] !== NodeMeta::FALLBACK_HIDE) {
+            return true;
+        }
+
+        return !$this->isElementLinkBroken();
+    }
+
+    /**
+     * True for element-linked nodes whose element is missing, disabled, or has no URL.
+     */
+    public function isElementLinkBroken(): bool
+    {
+        if (!\in_array($this->type, self::ELEMENT_TYPES, true)) {
+            return false;
+        }
+        $element = $this->getLinkedElement();
+        if (!$element instanceof ElementInterface) {
+            return true;
+        }
+
+        try {
+            return !$element->getUrl();
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * Children after visibility filtering (set when resolved through the tree), or null if unknown.
+     *
+     * @return null|list<object>
+     */
+    public function getTreeChildren(): ?array
+    {
+        return $this->_treeChildren;
+    }
+
+    /**
+     * @param null|list<object> $children
+     */
+    public function setTreeChildren(?array $children): void
+    {
+        $this->_treeChildren = $children;
     }
 
     public function getCpEditUrl(): ?string
@@ -228,10 +346,18 @@ class Node extends Element
 
     public function beforeSave(bool $isNew): bool
     {
-        if ($this->type === self::TYPE_PASSIVE || $this->type === self::TYPE_DYNAMIC) {
+        if (\in_array($this->type, self::URLLESS_TYPES, true)) {
             $this->url = null;
             $this->elementId = null;
             $this->followElement = false;
+            if ($this->type === self::TYPE_SEPARATOR) {
+                $this->newWindow = false;
+            }
+        } elseif ($this->type === self::TYPE_ANCHOR) {
+            $this->url = ltrim(trim((string) $this->url), '#') ?: null;
+            $this->elementId = null;
+            $this->followElement = false;
+            $this->newWindow = false;
         } elseif ($this->type === self::TYPE_SITE) {
             $this->url = null;
             $this->followElement = false;
@@ -347,8 +473,8 @@ class Node extends Element
         $rules = parent::defineRules();
         $rules[] = [['menuId', 'type'], 'required'];
         $rules[] = [['type'], 'in', 'range' => self::TYPES];
-        $rules[] = [['url'], 'required', 'when' => fn () => $this->type === self::TYPE_CUSTOM];
-        $rules[] = [['elementId'], 'required', 'when' => fn () => \in_array($this->type, [self::TYPE_ENTRY, self::TYPE_CATEGORY, self::TYPE_ASSET, self::TYPE_SITE, self::TYPE_PRODUCT], true)];
+        $rules[] = [['url'], 'required', 'when' => fn () => \in_array($this->type, [self::TYPE_CUSTOM, self::TYPE_ANCHOR], true)];
+        $rules[] = [['elementId'], 'required', 'when' => fn () => \in_array($this->type, [...self::ELEMENT_TYPES, self::TYPE_SITE], true)];
 
         return $rules;
     }

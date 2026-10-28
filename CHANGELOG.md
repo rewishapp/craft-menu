@@ -1,5 +1,10 @@
 # Release Notes for Menu
 
+## 1.1.1 - 2026-10-28
+
+### Fixed
+- Changelog version headings include dates (`## X.Y.Z - YYYY-MM-DD`) so the Craft Plugin Store can render the changelog.
+
 ## 1.1.0 - 2026-10-28
 
 ### Added

@@ -9,14 +9,22 @@ Control panel translations: **en**, **de**, **fr**, **it**, **nl**.
 ## Install
 
 ```bash
-composer require "rewi.sh/menu:^1.0.0" -w && php craft plugin/install menu
+composer require rewi.sh/menu -w && php craft plugin/install menu
 ```
 
 DDEV:
 
 ```bash
-ddev composer require "rewi.sh/menu:^1.0.0" -w && ddev craft plugin/install menu
+ddev composer require rewi.sh/menu -w && ddev craft plugin/install menu
 ```
+
+### Update
+
+```bash
+composer update rewi.sh/menu -w && php craft migrate/all
+```
+
+DDEV: `ddev composer update rewi.sh/menu -w && ddev craft migrate/all`
 
 ## What you get
 

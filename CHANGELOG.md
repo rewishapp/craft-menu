@@ -1,6 +1,6 @@
 # Release Notes for Menu
 
-## 1.1.0
+## 1.1.0 - 2026-10-28
 
 ### Added
 - **Anchor** (`#fragment`) and **Separator** node types.
@@ -23,7 +23,7 @@
 - Schema **0.3.0** (`menu_menus.cssClass`, `menu_menus.htmlAttributes`).
 - Import / export carry the new menu and node fields.
 
-## 1.0.0
+## 1.0.0 - 2026-10-27
 
 ### Added
 - Polished CP builder UI: type chips, badges, sticky editor sections, empty states.
